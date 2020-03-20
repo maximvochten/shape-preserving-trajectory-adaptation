@@ -60,20 +60,47 @@ class InvariantsROS:
     def simulate_new_target_poses(self,nb_samples):
         '''Simulate new desired target poses, in reality this would come from an external measurement system. At the moment the target pose is moving linearly in space'''
         targetpose_orig = self.current_pose_trajectory[-1]
-        
+  
 #        targetpose_end = targetpose_orig.copy()
 #        targetpose_end[0,3] -= 0.0
 #        targetpose_end[1,3] += 0.0
 #        targetpose_end[2,3] += 1.0
         
         # Transformation matrix in world frame
-        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.25,1.0,0.5))
+        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.8,0.2,0.2))
         DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(0.7,-0.7,-1.7),tf.Vector(0.0,0.0,0.0))
         targetpose_end = tf.toMatrix( DeltaT_translation * tf.fromMatrix(targetpose_orig) * DeltaT_rotation )
         
         target_poses_list = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_orig,endPose=targetpose_end,duration=1,cyclePeriod=1./nb_samples)
         
         return target_poses_list
+
+    def transform_pose_trajectory(self):
+      
+        startpose_orig = self.current_pose_trajectory[0]
+        #pose_robot_home = np.array([ [0.330273, 0.000795057,   -0.943885, -0.603343],[0.943885,-0.000797594,    0.330273, -0.1629],[-0.000490251,   -0.999999, -0.00101387, 0.733288],[0,0,0,1] ])
+        
+        #pose_robot_home = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0) , tf.Vector(0.2,-1.3,-1.0+0.07))
+
+        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(0.19,-1.5-0.3,-0.93))
+        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(2.11,-0.13,-0.14),tf.Vector(0.0,0.0,0.0))
+        
+        #deltapose_world = np.matmul(pose_robot_home,np.linalg.inv(startpose_orig))
+        
+        for idx,pose in enumerate(self.current_pose_trajectory):
+            self.current_pose_trajectory[idx] = tf.toMatrix( DeltaT_translation * tf.fromMatrix(pose) * DeltaT_rotation )
+
+        
+        #deltapose_orig = np.linalg.inv(startpose_orig) * targetpose_orig # is in object frame
+        
+                #        [[    0.330273, 0.000795057,   -0.943885;
+        #     0.943885,-0.000797594,    0.330273;
+        # -0.000490251,   -0.999999, -0.00101387]
+        #[   -0.603343,    -0.16298,    0.733288]]
+  
+        
+        
+        
 
     def publish_trajectory(self):
         '''Put the calculated trajectory (pose/twist) on a topic''' 
@@ -173,7 +200,7 @@ class InvariantsROS:
         globalprogress = 0
         
         # while not at the end of the global trajectory
-        while not globalprogress >= 0.90 and not counter == 30:
+        while not globalprogress >= 0.90  and not counter == 30:
 
             # Set target pose
             localprogress = self.localprogress
@@ -226,9 +253,10 @@ if __name__ == '__main__':
 
         # Initialization
         inv = InvariantsROS(demo_file_location=file_location,parameterization='geometric')
-
+        inv.transform_pose_trajectory()
+        
         # Test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         # This function takes a long time (~0.6 seconds, so keep out of loop)
         targetposes = inv.simulate_new_target_poses(inv.N)

@@ -106,7 +106,7 @@ h = 0.5;
 [xcyl2, ycyl2, zcyl2] = cylinder(0.9*r,Ncyl); %input r, gives back unit height cylinder
 
 %cylinder position
-T_w_obstacle = [1 0 0 -0.09307 ; 0 1 0 1.576+0.03 ; 0 0 1 1.528; 0 0 0 1];
+T_w_obstacle = [1 0 0 0.04 ; 0 1 0 -0.42 ; 0 0 1 0.38; 0 0 0 1];
 
 %inside cylinder
 h_obstacle = surf(xcyl,ycyl,h*zcyl-h/2,'EdgeAlpha',0.0,'FaceColor',[0.2 0.8 0.8],'FaceAlpha',1,'FaceLighting','phong');

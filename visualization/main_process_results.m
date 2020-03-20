@@ -61,7 +61,8 @@ end
 
 %% Load robot trajectory and global trajectories
 
-[robot_times,robot_trajectory] = load_robot_trajectory([results_folder,'joints.txt']);
+%[robot_times,robot_trajectory] = load_robot_trajectory([results_folder,'joints.txt']);
+[robot_times,robot_trajectory] = load_robot_trajectory_UR10([results_folder,'joints.txt']);
 [traj_triggers,trajectories,invariants,sample_triggers] = load_invariant_trajectories(results_folder,nb);
 
 plot_trajectory(robot_trajectory,trajectories{1},'robot trajectory',1);
@@ -72,7 +73,7 @@ plot_robot_trajectories_all(robot_trajectory,trajectories);
 %figure; plot(linspace(0,1,size(robot_trajectory),joints(:,2),'k-','linewidth',2); grid on; axis equal;
 drawnow
 %if 0
-%plot_robot_trajectories_animated(robot_trajectory,trajectories,robot_times,traj_triggers,1);
+plot_robot_trajectories_animated(robot_trajectory,trajectories,robot_times,traj_triggers,1);
 
 %
 %    export_fig 'figures/3D_obstacle.png' -transparent -m2.5
@@ -103,5 +104,5 @@ for k=1:nb
 end
 
 % Trajectories
-plot_descriptors_all(demo_posecoords,posecoords,'',h,parameterization,'pose',sample_triggers)
+plot_descriptors_all(posecoords{1},posecoords,'',h,parameterization,'pose',sample_triggers)
 

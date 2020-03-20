@@ -26,6 +26,42 @@ except ImportError: # sometimes when reimporting it gives an error... (?)
     pass 
 import numpy as np
 
+
+from urdf_parser_py.urdf import URDF # install ros indigo urdfdom-py
+from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model # install hrl-kdl from https://github.com/gt-ros-pkg/hrl-kdl/
+import PyKDL as KDL
+
+#LOAD URDF file
+# Retrieve kinematic chain of the robot from URDF file
+rospack = rospkg.RosPack()
+ur10_urdf = URDF.from_xml_file(rospack.get_path('etasl_py_examples')+'/robots/ur10_robot.urdf')
+ur10_urdf_kdl_tree = kdl_tree_from_urdf_model(ur10_urdf)
+#[lowerlimits,upperlimits,names] = urdf_get_joint_limits(ur10_urdf)
+
+ur10_ee = ur10_urdf_kdl_tree.getChain('world','tool0')
+Nq = ur10_ee.getNrOfJoints()
+
+#define forward position kinematics solver + inverse position kinematics solver
+fkpos_ee = KDL.ChainFkSolverPos_recursive(ur10_ee)
+ikvel_ee = KDL.ChainIkSolverVel_pinv(ur10_ee)
+ikpos_ee = KDL.ChainIkSolverPos_NR(ur10_ee,fkpos_ee,ikvel_ee)
+
+Finit=KDL.Frame()
+qinit = KDL.JntArray(Nq)
+qinit2 = KDL.JntArray(Nq)
+
+qinit[0] = 3.14
+qinit[1] = -1.71
+qinit[2] = 1.71
+qinit[3] = -1.57
+qinit[4] = -1.57
+qinit[5] = 0.335
+
+fkpos_ee.JntToCart(qinit,Finit)
+ikpos_ee.CartToJnt(qinit,Finit,qinit2)
+
+
+
 def closest_node(point, trajectory):
     ''' Returns the index of the point in the trajectory to which a given point lies closest'''
     trajectory = np.asarray(trajectory) # list to array
@@ -110,7 +146,7 @@ class EtaslSimulator:
             require("geometric")
             -- Robot:
             local u=UrdfExpr();
-            local fn = rospack_find("etasl_py_examples").."/robots/ur10_robot.urdf"
+            local fn = rospack_find("etasl_py_examples").."/robots/ur10_robot_reduced.urdf"
             u:readFromFile(fn)
             u:addTransform("ee","tool0","base_link")
             local r = u:getExpressions(ctx)
@@ -122,7 +158,7 @@ class EtaslSimulator:
             end
         """
                 
-        sim.readTaskSpecificationString(simple_6DOF_robot_specification)
+        sim.readTaskSpecificationString(UR10_robot)
         #sim.displayContext()
         
 #        # Define trajectory tracking task
@@ -210,9 +246,9 @@ class EtaslSimulator:
         obstacle_avoidance_specification="""
         require("libexpressiongraph_collision")
         
-        obstacle_pose = translate_x(-0.09307)*translate_y(1.576+0.03)*translate_z(1.528)
+        obstacle_pose = translate_x(0.04-0.0)*translate_y(-0.42+0.05)*translate_z(0.38)
         
-        local d = distance_between( obstacle_pose, CylinderZ(0.1,0.1,2.0), 0.00, 0.001, ee, CapsuleX(0.06,0.1), 0.000, 0.001 )
+        local d = distance_between( obstacle_pose, CylinderZ(0.1,0.1,2.0), 0.00, 0.001, ee, Box(0.06,0.06,0.1), 0.000, 0.001 )
         
         Constraint {
             context = ctx,
@@ -225,7 +261,7 @@ class EtaslSimulator:
         }
         """
         
-        #sim.readTaskSpecificationString(obstacle_avoidance_specification)
+        sim.readTaskSpecificationString(obstacle_avoidance_specification)
         
         #sim.displayContext()
         
@@ -242,20 +278,20 @@ class EtaslSimulator:
         controller_freq = 200 # frequency in Hz
         rate = rospy.Rate(controller_freq)    
         input_labels = ['R_11','R_12','R_13','R_21','R_22','R_23','R_31','R_32','R_33','p_x','p_y','p_z'] # input variables 
-        robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
-        #robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
-        current_robotpos = np.array([0.3441, 1.657, 1.601, 0.4956, -0.4489, 2.7519]) #np.array([0.14,1.5,1.72]) #        
+        #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
+        robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
+        #current_robotpos = np.array([0.3441, 1.657, 1.601, 0.4956, -0.4489, 2.7519]) #np.array([0.14,1.5,1.72]) #        
+        current_robotpos = np.array([0, -np.pi*0.6 , np.pi*0.6,-2.0,-np.pi*0.5,0.1,0.1]) #np.array([0.14,1.5,1.72]) #        
         self.sim.initialize(current_robotpos,robot_labels)
  
         # Gather results in this list
         joint_list = []
-        joint_list.append(np.append(rospy.get_time(),np.append(0,current_robotpos)))
         
         starttime = rospy.get_time()
         
         # Progress over the different trajectories
         count = 0 # this variable holds the index of the current trajectory
-        while count <= len(progress_sequence)-2 and rospy.get_time()-starttime < 20.0: # while there are still trajectories left
+        while count <= len(progress_sequence)-2 and rospy.get_time()-starttime < 10.0: # while there are still trajectories left
             
             # Load in global trajectory of pose and twist
             pose_traj = np.loadtxt(self.results_folder + 'traj'+str(count) + '.txt')[:,1:]
@@ -263,11 +299,20 @@ class EtaslSimulator:
             N = float(len(pose_traj))
 
             # Find closest point to trajectory + estimate local progress along current trajectory
-            closest_index = closest_node(current_robotpos[0:3],pose_traj[:,9:12])        
+            Finit=KDL.Frame()
+            qinit = KDL.JntArray(Nq)
+            for i in range(Nq):
+                qinit[i] = current_robotpos[i]            
+            fkpos_ee.JntToCart(qinit,Finit)
+            #print Finit
+            
+            joint_list.append(np.append(rospy.get_time(),np.append(0,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
+            
+            closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
             local_progress_var = closest_index/(N-1)
             
             # Progress over current trajectory until you hit trigger for switching to next trajectory
-            while local_progress_var < local_progress_triggers[count] and rospy.get_time()-starttime < 20.0:
+            while local_progress_var < local_progress_triggers[count] and rospy.get_time()-starttime < 10.0:
                 
                 # Get setpoint for pose and twist
                 pose_setpoint = pose_traj[closest_index]
@@ -279,12 +324,21 @@ class EtaslSimulator:
                 self.sim.setInputTable(input_labels,[pose_setpoint],[pose_derivative_setpoint])
                 self.sim.simulate(N=1,dt=1./controller_freq)
                 current_robotpos = self.sim.POS[0]
-                joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,current_robotpos)))
+                #print current_robotpos
                 #rospy.loginfo(current_robotpos)
 
                 # Find closest point to trajectory + estimate progress along current trajectory
-                closest_index = closest_node(current_robotpos[0:3],pose_traj[:,9:12])
+                Finit=KDL.Frame()
+                qinit = KDL.JntArray(Nq)
+                for i in range(Nq):
+                    qinit[i] = current_robotpos[i]            
+                fkpos_ee.JntToCart(qinit,Finit)
+                print qinit
+                
+                closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
                 local_progress_var = closest_index/(N-1)
+                joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
+
                 rospy.loginfo('local progress:' + str(local_progress_var) + ' , index:' + str(closest_index))
                 rate.sleep()
                 
@@ -301,9 +355,10 @@ class EtaslSimulator:
         controller_freq = 200 # frequency
         rate = rospy.Rate(controller_freq)
         input_labels = ['R_11','R_12','R_13','R_21','R_22','R_23','R_31','R_32','R_33','p_x','p_y','p_z'] # input variables  
-        robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
-        #robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
-        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
+        #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
+        robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
+#        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
+        current_robotpos = np.array([0, -np.pi*0.6 , np.pi*0.6,-2.0,-np.pi*0.5,0.1,0.1])
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -314,9 +369,15 @@ class EtaslSimulator:
         rospy.wait_for_message("/trajectory_pub",Trajectory)
         starttime = rospy.get_time()
 
+
         # Gather results in this list
+        Finit=KDL.Frame()
+        qinit = KDL.JntArray(Nq)
+        for i in range(Nq):
+            qinit[i] = current_robotpos[i]            
+        fkpos_ee.JntToCart(qinit,Finit)
         joint_list = []
-        joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,current_robotpos)))
+        joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
                 
         # Load in global trajectory of pose and twist
         pose_traj = self.pose_traj
@@ -324,7 +385,7 @@ class EtaslSimulator:
         N = float(len(self.pose_traj))
         
         # Find closest point to trajectory + estimate local progress along current trajectory
-        closest_index = closest_node(current_robotpos[0:3],pose_traj[:,9:12])        
+        closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])        
         local_progress_var = closest_index/(N-1)
         
         # Progress until we are at the end of the current trajectory
@@ -340,7 +401,7 @@ class EtaslSimulator:
             self.sim.setInputTable(input_labels,[pose_setpoint],[pose_derivative_setpoint])
             self.sim.simulate(N=1,dt=1./controller_freq)
             current_robotpos = self.sim.POS[0]
-            joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,current_robotpos)))
+            joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
             #rospy.loginfo(current_robotpos)
             
             # Load in global trajectory of pose and twist
@@ -349,7 +410,14 @@ class EtaslSimulator:
             N = float(len(self.pose_traj))
             
             # Find closest point to trajectory + estimate progress along current trajectory
-            closest_index = closest_node(current_robotpos[0:3],pose_traj[:,9:12])
+            Finit=KDL.Frame()
+            qinit = KDL.JntArray(Nq)
+            for i in range(Nq):
+                qinit[i] = current_robotpos[i]            
+            fkpos_ee.JntToCart(qinit,Finit)
+            print qinit
+            
+            closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
             local_progress_var = closest_index/(N-1)
             rospy.loginfo('local progress:' + str(local_progress_var) + ' , index:' + str(closest_index))
             self.current_progress_pub.publish(local_progress_var)
