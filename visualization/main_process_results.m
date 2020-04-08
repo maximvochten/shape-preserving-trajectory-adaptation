@@ -71,7 +71,7 @@ drawnow
 plot_robot_trajectories_animated(robot_trajectory,trajectories,robot_times,traj_triggers,save_videos,show_obstacle);
 
 %
-%    export_fig 'figures/movingtarget3_2.png' -transparent -m2.5
+%    export_fig 'figures/3D_obstacle_v2.png' -transparent -m2.5
 %end
 
 %% Plot invariants
