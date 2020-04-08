@@ -18,6 +18,7 @@ import numpy as np
 import scipy
 from matplotlib import pyplot as plt
 from scipy.spatial.transform import Rotation as R
+from scipy.linalg import logm
 
 import casadi as cas
 import integrator_functions as helper
@@ -42,10 +43,11 @@ trajectory_generation_parameters = dict({
 moving_window_parameters = dict({
         'window_length'   :   10,   #width of the moving window
         'use_window'    :   True,   #use a moving window along the trajectory, recommended for reducing calculation time of long motions
-        'weigths_end_constraints' : np.array([5.0, 0.1]), # position, rotation
+        'weigths_end_constraints' : np.array([1.0, 1.0]), # position, rotation
         'casadi_opti_stack' : cas.Opti(),
         'first_window_solved' : False,
-        'previous_sol' : None
+        'previous_sol' : None,
+        'invariant_weights' : (10**-6)*np.array([1e2, 1.0, 1.0, 1.0, 1.0, 1.0])
         })
 
 #list of casadi optistack variables
@@ -1054,6 +1056,7 @@ class MotionTrajectory:
         ## MPC parameters
         window_parameters = self.getWindowParameters()
         window_length = window_parameters['window_length']
+        weights = window_parameters['invariant_weights']
         #weights_end = window_parameters['weigths_end_constraints']
 
         ## Generate optimal eFSI trajectory
@@ -1163,22 +1166,22 @@ class MotionTrajectory:
         objective = 0
         for k in range(window_length-1):
             e = U[:,k] - U_demo[:,k]  # invariants error
-            e_weighted = 10e-4*np.sqrt(weights)*e
+            e_weighted = 1.0*np.sqrt(weights)*e
             objective = objective + cas.mtimes(e_weighted.T,e_weighted)
 
          # Constraints on the end $$$!Check multiplication of R_obj_reconstruction!$$$
-        R_obj_reconstruction = cas.mtimes(cas.mtimes(cas.mtimes(R_r[-1],Theta*R_obj_offset),R_r[-1].T),R_obj[-1])  # apply offset to reconstructed trajectory
+        R_obj_reconstruction = cas.mtimes(cas.mtimes(cas.mtimes(R_r[-1],helper.rodrigues2(Theta*R_obj_offset)),R_r[-1].T),R_obj[-1])  # apply offset to reconstructed trajectory
         p_obj_reconstruction = cas.mtimes(R_t[-1],L*p_obj_offset) + p_obj[-1]  # apply offset to reconstructed trajectory
 
         R_constraint = cas.mtimes(R_obj_end.T, R_obj_reconstruction)
 
         ## add SOFT end constraints to the objective
         deltaP = p_obj_end - p_obj_reconstruction
-        objective = objective + 5.0*(cas.mtimes(deltaP.T,deltaP))
+        objective = objective + 1.0*(cas.mtimes(deltaP.T,deltaP))
 
 #        deltaR = (weights_end[3]* R_constraint[0,1] + weights_end[1]*R_constraint[1,2] )
         deltaR = (cas.vec(R_constraint)-np.array([[1.0],[0.0],[0.0],[0.0],[1.0],[0.0],[0.0],[0.0],[1.0]]))
-        objective = objective + 0.1*cas.mtimes(deltaR.T, deltaR)
+        objective = objective + 1.0*cas.mtimes(deltaR.T, deltaR)
 
         ## objective is done
         opti.minimize(objective)
@@ -1213,7 +1216,7 @@ class MotionTrajectory:
 #            opti.set_value(p_obj_end, invariant_signature['p_obj'][-1])
 
         (R_offset, p_offset) = helper.offset_integrator(invariants_demo['U'][:, window_length-1:],h)
-        opti.set_value(R_obj_offset, R_offset/invariants_demo['U'][0,0])
+        opti.set_value(R_obj_offset, logm(R_offset)/invariants_demo['U'][0,0])
         opti.set_value(p_obj_offset, p_offset/invariants_demo['U'][3,0])
 
         opti.set_value(U_demo[:,:window_length-1], invariants_demo['U'][:, :window_length-1])
@@ -1279,7 +1282,7 @@ class MotionTrajectory:
         R_obj_0 = sol.value(R_obj[-1])
         
         invariants_demo["U"][3,:] = sol.value(L)
-        #invariants_demo["U"][0,:] = sol.value(Theta)
+        invariants_demo["U"][0,:] = sol.value(Theta)
         self.setInvariantsDemo(invariants_demo)
         
         invariants_remaining = invariants_demo["U"][:,window_length-1:]
@@ -1460,7 +1463,7 @@ class MotionTrajectory:
             opti.set_value(p_obj_end, p_end)
 
         (R_offset, p_offset) = helper.offset_integrator(invariants_demo['U'][:, n+window_length-1:],h)
-        opti.set_value(R_obj_offset, R_offset/invariants_demo['U'][0,0])
+        opti.set_value(R_obj_offset, logm(R_offset)/invariants_demo['U'][0,0])
         opti.set_value(p_obj_offset,  p_offset/invariants_demo['U'][3,0])
 
         opti.set_value(U_demo[:,0:window_length-1], invariants_demo['U'][:, n:n+window_length-1])
@@ -1525,7 +1528,7 @@ class MotionTrajectory:
         R_obj_0 = sol.value(R_obj[-1])
         
         invariants_demo["U"][3,:] = sol.value(L)
-        #invariants_demo["U"][0,:] = sol.value(Theta)
+        invariants_demo["U"][0,:] = sol.value(Theta)
         self.setInvariantsDemo(invariants_demo)
         invariants_remaining = invariants_demo["U"][:, n+window_length-1:]
         

@@ -132,12 +132,19 @@ for i=1:6
     hold(subplot1,'all');
     
     % Create plot demonstration
-    for j=1:M1
-        plot(xvector(1:N1),data1(:,i),'k-','Parent',subplot1,'LineWidth',3);
+    if i==1 || i==2 || i==3
+        datatoplot = unwrap(data1(:,i));
+    else
+        datatoplot = [data1(:,i)];
+    end
+    if strcmp(descriptor_type,'pose')
+    plot(xvector(1:N1),datatoplot,'color',colororders(1,:),'Parent',subplot1,'LineWidth',1.5);
+    else
+            plot(xvector(1:N1),datatoplot,'k','Parent',subplot1,'LineWidth',2.5);
     end
     plot(0,0)
-                lastsample = [];
-                lastindex = [];    
+    lastsample = [];
+    lastindex = [];
     % Create plot rest
     for j=1:M2
         if iscell(data2)
@@ -164,7 +171,18 @@ for i=1:6
             else
                 N3 = length(data_2);
             end
-            plot(xvector(N2:N2+N3-1),[extra_sample;data_2(1:N3,i)],'Parent',subplot1,'LineWidth',2.5,'Color',colororders(mod(j-1,7)+1,:),'LineStyle','-');
+            
+            if i==1 || i==2 || i==3
+                datatoplot = unwrap([extra_sample;data_2(1:N3,i)]);
+            else
+                datatoplot = [extra_sample;data_2(1:N3,i)];
+            end
+            
+            if i==1 && j==M2
+                datatoplot = datatoplot - 2*pi;
+            end
+            
+            plot(xvector(N2:N2+N3-1),datatoplot,'Parent',subplot1,'LineWidth',3,'Color',colororders(mod(j-1,7)+1,:),'LineStyle','-');
             
         else
             %             %data_old = data2{j-1};
@@ -187,15 +205,16 @@ for i=1:6
             end
             if j == 1
                 plot(xvector(N2:N2+N3-2),data_2(1:N3-1,i),'Parent',subplot1,'LineWidth',1.5,'Color',colororders(mod(j-1,7)+1,:),'LineStyle','-');
-
+                lastsample = data_2(N3,i);
+                lastindex = xvector(N2+N3-1);
             else
                 data_old = data2{j-1};
                 extra_sample =  data_old( sample_triggers(j) - sample_triggers(j-1) +1 , i );
-                            extra_sample = [];
-
+                extra_sample = [];
+                
                 plot([lastindex xvector(N2:N2+N3-1)],[lastsample;data_2(1:N3,i)],'Parent',subplot1,'LineWidth',1.5,'Color',colororders(mod(j-1,7)+1,:),'LineStyle','-');
                 lastsample = data_2(N3,i);
-                lastindex = xvector(N2+N3-1);               
+                lastindex = xvector(N2+N3-1);
             end
         end
     end

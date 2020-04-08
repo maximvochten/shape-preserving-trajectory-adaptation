@@ -15,13 +15,17 @@ import numpy as np
 def rodriguez_rot_form(omega,h):
     """Return a rotation matrix which is the result of rotating with omega over time interval h"""
     omega_norm = cas.norm_2(omega)
-    #return np.eye(3) + sin(omega_norm*h)/omega_norm*skew(omega) + (1-cos(omega_norm*h))/omega_norm**2 * mtimes(skew(omega),skew(omega))
-    return cas.SX.eye(3) + cas.sin(omega_norm*h)/omega_norm*cas.skew(omega) + (1-cas.cos(omega_norm*h))/omega_norm**2 * cas.mtimes(cas.skew(omega),cas.skew(omega))
+    return np.eye(3) + cas.sin(omega_norm*h)/omega_norm*cas.skew(omega) + (1-cas.cos(omega_norm*h))/omega_norm**2 * cas.mtimes(cas.skew(omega),cas.skew(omega))
+    #return cas.SX.eye(3) + cas.sin(omega_norm*h)/omega_norm*cas.skew(omega) + (1-cas.cos(omega_norm*h))/omega_norm**2 * cas.mtimes(cas.skew(omega),cas.skew(omega))
 
 #def rodriguez_rot_form3(deltatheta):
 #    theta = deltatheta[0,1]
 #    return cas.SX.eye(3) + cas.mtimes(cas.sin(theta),K) + (1-cas.cos(theta))*cas.mtimes(K,K)
 
+def rodrigues2(skewer):
+    
+    omega = cas.vertcat(-skewer[1,2],skewer[0,2],-skewer[0,1])
+    return rodriguez_rot_form(omega,h=1)
 
 def geo_integrator(R_t, R_r, R_obj, p_obj, u, h):
     """Integrate invariants over interval h starting from a current state (object pose + moving frames)"""

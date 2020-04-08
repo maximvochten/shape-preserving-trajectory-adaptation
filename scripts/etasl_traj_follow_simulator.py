@@ -25,13 +25,10 @@ try:
 except ImportError: # sometimes when reimporting it gives an error... (?)
     pass 
 import numpy as np
-
-
-from urdf_parser_py.urdf import URDF # install ros indigo urdfdom-py
-from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model # install hrl-kdl from https://github.com/gt-ros-pkg/hrl-kdl/
+from urdf_parser_py.urdf import URDF # installed through ros melodic urdfdom-py
+from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model # download hrl-kdl from https://github.com/gt-ros-pkg/hrl-kdl/
 import PyKDL as KDL
 
-#LOAD URDF file
 # Retrieve kinematic chain of the robot from URDF file
 rospack = rospkg.RosPack()
 ur10_urdf = URDF.from_xml_file(rospack.get_path('etasl_py_examples')+'/robots/ur10_robot.urdf')
@@ -46,20 +43,21 @@ fkpos_ee = KDL.ChainFkSolverPos_recursive(ur10_ee)
 ikvel_ee = KDL.ChainIkSolverVel_pinv(ur10_ee)
 ikpos_ee = KDL.ChainIkSolverPos_NR(ur10_ee,fkpos_ee,ikvel_ee)
 
-Finit=KDL.Frame()
+Finit = KDL.Frame()
 qinit = KDL.JntArray(Nq)
 qinit2 = KDL.JntArray(Nq)
 
-qinit[0] = 3.14
-qinit[1] = -1.71
-qinit[2] = 1.71
-qinit[3] = -1.57
-qinit[4] = -1.57
-qinit[5] = 0.335
-
+# Test forward kinematics
+current_robotpos = np.array([0,-np.pi*0.6,np.pi*0.6,-2.0,-np.pi*0.5,0.1])
+qinit = KDL.JntArray(Nq)
+for i in range(Nq):
+    qinit[i] = current_robotpos[i]  
 fkpos_ee.JntToCart(qinit,Finit)
-ikpos_ee.CartToJnt(qinit,Finit,qinit2)
 
+#Test inverse kinematics
+Finit = KDL.Frame(KDL.Rotation.EulerZYX(-1.4465,0.3998,-2.0707), KDL.Vector(0.4,-0.5,0.85))
+ikpos_ee.CartToJnt(qinit,Finit,qinit2)
+print qinit2
 
 
 def closest_node(point, trajectory):
@@ -246,9 +244,9 @@ class EtaslSimulator:
         obstacle_avoidance_specification="""
         require("libexpressiongraph_collision")
         
-        obstacle_pose = translate_x(0.04-0.0)*translate_y(-0.42+0.05)*translate_z(0.38)
+        obstacle_pose = translate_x(0.036)*translate_y(-0.80)*translate_z(0.31)
         
-        local d = distance_between( obstacle_pose, CylinderZ(0.1,0.1,2.0), 0.00, 0.001, ee, Box(0.06,0.06,0.1), 0.000, 0.001 )
+        local d = distance_between( obstacle_pose, CylinderZ(0.1,0.1,2.0), 0.00, 0.001, ee, Box(0.06,0.06,0.1), 0.00, 0.001 )
         
         Constraint {
             context = ctx,
@@ -281,12 +279,11 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
         #current_robotpos = np.array([0.3441, 1.657, 1.601, 0.4956, -0.4489, 2.7519]) #np.array([0.14,1.5,1.72]) #        
-        current_robotpos = np.array([0, -np.pi*0.6 , np.pi*0.6,-2.0,-np.pi*0.5,0.1,0.1]) #np.array([0.14,1.5,1.72]) #        
+        current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451]) #np.array([0.14,1.5,1.72]) #        
         self.sim.initialize(current_robotpos,robot_labels)
  
         # Gather results in this list
-        joint_list = []
-        
+        joint_list = []    
         starttime = rospy.get_time()
         
         # Progress over the different trajectories
@@ -333,7 +330,7 @@ class EtaslSimulator:
                 for i in range(Nq):
                     qinit[i] = current_robotpos[i]            
                 fkpos_ee.JntToCart(qinit,Finit)
-                print qinit
+                #print qinit
                 
                 closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
                 local_progress_var = closest_index/(N-1)
@@ -358,7 +355,7 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
 #        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
-        current_robotpos = np.array([0, -np.pi*0.6 , np.pi*0.6,-2.0,-np.pi*0.5,0.1,0.1])
+        current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451])
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -389,11 +386,13 @@ class EtaslSimulator:
         local_progress_var = closest_index/(N-1)
         
         # Progress until we are at the end of the current trajectory
-        while local_progress_var != 1 and rospy.get_time()-starttime < 20.0 :
+        while local_progress_var < 1 and rospy.get_time()-starttime < 10.0 : 
                                    
             # Get setpoint for pose and twist
+            #if closest_index == N-2:
+            #    closest_index = closest_index-1
             pose_setpoint = pose_traj[closest_index]
-            twist_setpoint = twist_traj[closest_index]
+            twist_setpoint = twist_traj[closest_index]    
             pose_derivative_setpoint = calculate_pose_derivative(pose_setpoint,twist_setpoint)
             
             # Set variables in etasl controller, perform 1 simulation step and save joints in a variable
@@ -415,12 +414,16 @@ class EtaslSimulator:
             for i in range(Nq):
                 qinit[i] = current_robotpos[i]            
             fkpos_ee.JntToCart(qinit,Finit)
-            print qinit
+            #print qinit
             
-            closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
+            closest_index = 1+closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
+            #if closest_index == N:# or closest_index == N:
+            #    closest_index = closest_index-1
             local_progress_var = closest_index/(N-1)
             rospy.loginfo('local progress:' + str(local_progress_var) + ' , index:' + str(closest_index))
             self.current_progress_pub.publish(local_progress_var)
+            
+            #local_progress_var = (closest_index-1)/(N-1)
             
             p = Pose()
             p.position.x = current_robotpos[0]
@@ -475,7 +478,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         if test_standalone:
             simul.standalone_test()

@@ -2,10 +2,6 @@ close all;
 clc;
 clear;
 
-% TODO colorder 3D grafiek
-% TODO capsule
-% TODO rotatie oplossen
-
 % Config paths
 addpath('plotting_functions/')
 addpath('plotting_functions/export_fig')
@@ -16,10 +12,9 @@ addpath(results_folder);
 parameterization = 'geometric';
 dt = 1/60; % timestep
 show_demonstration = 1;
-nb = 30; % nb of trajectories
+nb = 23; % nb of trajectories
 save_videos = 0;
-
-% Obstacle information
+show_obstacle = 1;
 
 %% Load measurements + invariants
 if show_demonstration
@@ -37,7 +32,7 @@ if show_demonstration
         meas_traj = meas_traj_time;
         h = dt;
     end
-    plot_trajectory(meas_traj_time,[],'measurements',1);
+    plot_trajectory(meas_traj_time,[],'measurements',1,0);
     
     % Load calculated invariants + reconstructed trajectory
     demo_invars = load([results_folder,'invariants_demo.txt']);
@@ -56,7 +51,7 @@ if show_demonstration
     for i=1:N
         n_traj.Obj_frames(:,:,i) = reshape(trajectory(i,2:10),3,3); % rotation matrix
     end
-    plot_trajectory(demon_traj,n_traj,'measurements(blue), calculated(red)',1);
+    plot_trajectory(demon_traj,n_traj,'measurements(blue), calculated(red)',1,0);
 end
 
 %% Load robot trajectory and global trajectories
@@ -65,7 +60,7 @@ end
 [robot_times,robot_trajectory] = load_robot_trajectory_UR10([results_folder,'joints.txt']);
 [traj_triggers,trajectories,invariants,sample_triggers] = load_invariant_trajectories(results_folder,nb);
 
-plot_trajectory(robot_trajectory,trajectories{1},'robot trajectory',1);
+plot_trajectory(robot_trajectory,trajectories{1},'robot trajectory',1,show_obstacle);
 
 plot_robot_trajectories_all(robot_trajectory,trajectories);
 
@@ -73,10 +68,10 @@ plot_robot_trajectories_all(robot_trajectory,trajectories);
 %figure; plot(linspace(0,1,size(robot_trajectory),joints(:,2),'k-','linewidth',2); grid on; axis equal;
 drawnow
 %if 0
-plot_robot_trajectories_animated(robot_trajectory,trajectories,robot_times,traj_triggers,1);
+plot_robot_trajectories_animated(robot_trajectory,trajectories,robot_times,traj_triggers,save_videos,show_obstacle);
 
 %
-%    export_fig 'figures/3D_obstacle.png' -transparent -m2.5
+%    export_fig 'figures/movingtarget3_2.png' -transparent -m2.5
 %end
 
 %% Plot invariants

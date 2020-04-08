@@ -1,4 +1,4 @@
-function plot_trajectory(trajectory1,trajectory2,titletext,show_rotation)
+function plot_trajectory(trajectory1,trajectory2,titletext,show_rotation,show_obstacle)
 
 p_obj_demo = trajectory1.Obj_location;
 R_demo = trajectory1.Obj_frames;
@@ -112,6 +112,7 @@ if ~isempty(trajectory2)
 end
 
 %% Obstacle
+if show_obstacle
 %cylinder mesh
 Ncyl = 100;
 r = 0.05;
@@ -119,7 +120,7 @@ h = 2;
 [xcyl, ycyl, zcyl] = cylinder(r,Ncyl); %input r, gives back unit height cylinder
 
 %cylinder position
-T_w_obstacle = [1 0 0 0.1409 ; 0 1 0 1.596-1*0.03 ; 0 0 1 1.664 ; 0 0 0 1];
+T_w_obstacle = [1 0 0 0 ; 0 1 0 -0.86 ; 0 0 1 0.25 ; 0 0 0 1];
 
 %inside cylinder
 h_obstacle = surf(xcyl,ycyl,h*zcyl-h/2,'EdgeAlpha',0.0,'FaceColor',[0.2 0.8 0.8],'FaceAlpha',1,'FaceLighting','phong');
@@ -129,6 +130,6 @@ combinedobjects = hgtransform('parent',gca);
 set(h_obstacle, 'parent', combinedobjects);
 set(combinedobjects, 'matrix', T_w_obstacle);
 drawnow
-
+end
 %zoom(0.75)
 
