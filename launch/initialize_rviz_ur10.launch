@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur10_skills)/robot_description/urdf/use_case_setup.urdf.xacro'" />
+  <!--   <param name="robot_description" textfile="$(find etasl_vision_setup_description)/urdf/etasl_vision_scene.urdf" /> -->
+
+  <!-- send fake joint values -->
+  <!--
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
+    <param name="use_gui" value="TRUE"/>
+  </node>
+  -->
+
+  <!-- Puts joint values from /joint_states topic on /tf -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- Launch rviz with given configuation settings -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find ur10_skills)/robot_description/environment_config.rviz"/>
+
+</launch>

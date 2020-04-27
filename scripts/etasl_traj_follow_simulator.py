@@ -19,6 +19,7 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 #from geometry_msgs.msg import PoseArray
 #from etasl_invariants_integration.msg import TwistArray
+from sensor_msgs.msg import JointState
 from etasl_invariants_integration.msg import Trajectory
 try:
     from etasl_py.etasl import etasl_simulator
@@ -101,15 +102,19 @@ class EtaslSimulator:
 
     def __init__(self):       
         
-        # Initialize ROS subscribers and publishers
         rospy.init_node('etasl_simulator', anonymous=True)
+        
+        # Initialize ROS subscribers        
         #rospy.Subscriber("/pose_traj_pub",PoseArray,self.callback_pose_traj)
         #rospy.Subscriber("/twist_traj_pub",TwistArray,self.callback_twist_traj) 
         rospy.Subscriber("/trajectory_pub",Trajectory,self.callback_traj)
-        
+
+        # Initialize ROS publishers        
         self.current_pose_pub = rospy.Publisher('current_pose_pub',Pose,queue_size=50)
         self.current_twist_pub = rospy.Publisher('current_twist_pub',Twist,queue_size=50)
         self.current_progress_pub = rospy.Publisher('progress_partial',Float32,queue_size=50)
+        self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=50)
+        
         rospack = rospkg.RosPack()
         
         self.target_pose = Pose()
@@ -259,7 +264,7 @@ class EtaslSimulator:
         }
         """
         
-        sim.readTaskSpecificationString(obstacle_avoidance_specification)
+        #sim.readTaskSpecificationString(obstacle_avoidance_specification)
         
         #sim.displayContext()
         
@@ -335,6 +340,13 @@ class EtaslSimulator:
                 closest_index = closest_node(tf.toMatrix(Finit)[0:3,3],pose_traj[:,9:12])
                 local_progress_var = closest_index/(N-1)
                 joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
+
+                jointState = JointState()
+                jointState.header.stamp = rospy.Time.now()
+                jointState.name         = robot_labels
+                jointState.position     = current_robotpos
+                jointState.velocity     = self.sim.VEL[0]
+                self.jointState_pub.publish(jointState)
 
                 rospy.loginfo('local progress:' + str(local_progress_var) + ' , index:' + str(closest_index))
                 rate.sleep()
@@ -441,7 +453,13 @@ class EtaslSimulator:
             t.linear.y = twist_setpoint[4]
             t.linear.z = twist_setpoint[5]
             self.current_twist_pub.publish(t)
-                 
+            
+            jointState = JointState()
+            jointState.name         = robot_labels
+            jointState.position     = current_robotpos
+            jointState.velocity     = self.sim.VEL[0]
+            self.jointState_pub.publish(jointState)
+           
             rate.sleep()
             
         rospy.loginfo('finished')
@@ -478,7 +496,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = False
+        test_standalone = True
         
         if test_standalone:
             simul.standalone_test()
