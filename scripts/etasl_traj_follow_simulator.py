@@ -110,8 +110,8 @@ class EtaslSimulator:
         rospy.Subscriber("/trajectory_pub",Trajectory,self.callback_traj)
 
         # Initialize ROS publishers        
-        self.current_pose_pub = rospy.Publisher('current_pose_pub',Pose,queue_size=50)
-        self.current_twist_pub = rospy.Publisher('current_twist_pub',Twist,queue_size=50)
+        self.current_pose_pub = rospy.Publisher('robot_state_pose_pub',Pose,queue_size=50)
+        self.current_twist_pub = rospy.Publisher('robot_state_twist_pub',Twist,queue_size=50)
         self.current_progress_pub = rospy.Publisher('progress_partial',Float32,queue_size=50)
         self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=50)
         
@@ -249,7 +249,7 @@ class EtaslSimulator:
         obstacle_avoidance_specification="""
         require("libexpressiongraph_collision")
         
-        obstacle_pose = translate_x(0.036)*translate_y(-0.80)*translate_z(0.31)
+        obstacle_pose = translate_x(0.036)*translate_y(-0.9)*translate_z(0.31)
         
         local d = distance_between( obstacle_pose, CylinderZ(0.1,0.1,2.0), 0.00, 0.001, ee, Box(0.06,0.06,0.1), 0.00, 0.001 )
         
@@ -264,7 +264,7 @@ class EtaslSimulator:
         }
         """
         
-        #sim.readTaskSpecificationString(obstacle_avoidance_specification)
+        sim.readTaskSpecificationString(obstacle_avoidance_specification)
         
         #sim.displayContext()
         
@@ -341,6 +341,26 @@ class EtaslSimulator:
                 local_progress_var = closest_index/(N-1)
                 joint_list.append(np.append(rospy.get_time(),np.append(local_progress_var,tf.toMatrix(Finit)[0:3,:].flatten('F'))))
 
+#                p = Pose()
+#                p.position.x = pose_setpoint
+#                p.position.y = current_robotpos[1]
+#                p.position.z = current_robotpos[2]
+#                mat = np.append(np.reshape(pose_traj[closest_index],[3,4],order='F'),[[0,0,0,1]],axis=0)
+#                p.orientation = tf.toMsg(tf.fromMatrix(mat)).orientation
+#                self.current_pose_pub.publish(p)
+                #Toon implementation
+                #self.current_pose_pub.publish(tf.toMsg(tf.fromMatrix(np.transpose(np.reshape(pose_setpoint,[4,3])))))                       
+                self.current_pose_pub.publish(tf.toMsg(tf.fromMatrix(np.append(tf.toMatrix(Finit)[0:3,:],[[0,0,0,1]],axis=0))))
+                
+                t = Twist()
+                t.angular.x = twist_setpoint[0]
+                t.angular.y = twist_setpoint[1]
+                t.angular.z = twist_setpoint[2]
+                t.linear.x  = twist_setpoint[3]
+                t.linear.y  = twist_setpoint[4]
+                t.linear.z  = twist_setpoint[5]
+                self.current_twist_pub.publish(t)
+                        
                 jointState = JointState()
                 jointState.header.stamp = rospy.Time.now()
                 jointState.name         = robot_labels
@@ -367,7 +387,7 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
 #        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
-        current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451])
+        current_robotpos = np.array([-1.2913, -1.68006, 1.4826, -1.16354, -0.460297, -1.24451])
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -421,7 +441,7 @@ class EtaslSimulator:
             N = float(len(self.pose_traj))
             
             # Find closest point to trajectory + estimate progress along current trajectory
-            Finit=KDL.Frame()
+            Finit = KDL.Frame()
             qinit = KDL.JntArray(Nq)
             for i in range(Nq):
                 qinit[i] = current_robotpos[i]            
@@ -437,29 +457,33 @@ class EtaslSimulator:
             
             #local_progress_var = (closest_index-1)/(N-1)
             
-            p = Pose()
-            p.position.x = current_robotpos[0]
-            p.position.y = current_robotpos[1]
-            p.position.z = current_robotpos[2]
-            mat = np.append(np.reshape(pose_traj[closest_index],[3,4],order='F'),[[0,0,0,1]],axis=0)
-            p.orientation = tf.toMsg(tf.fromMatrix(mat)).orientation
-            self.current_pose_pub.publish(p)
-                   
+#                p = Pose()
+#                p.position.x = pose_setpoint
+#                p.position.y = current_robotpos[1]
+#                p.position.z = current_robotpos[2]
+#                mat = np.append(np.reshape(pose_traj[closest_index],[3,4],order='F'),[[0,0,0,1]],axis=0)
+#                p.orientation = tf.toMsg(tf.fromMatrix(mat)).orientation
+#                self.current_pose_pub.publish(p)
+            #Toon implementation
+            #self.current_pose_pub.publish(tf.toMsg(tf.fromMatrix(np.transpose(np.reshape(pose_setpoint,[4,3])))))                       
+            self.current_pose_pub.publish(tf.toMsg(tf.fromMatrix(np.append(tf.toMatrix(Finit)[0:3,:],[[0,0,0,1]],axis=0))))
+            
             t = Twist()
             t.angular.x = twist_setpoint[0]
             t.angular.y = twist_setpoint[1]
             t.angular.z = twist_setpoint[2]
-            t.linear.x = twist_setpoint[3]
-            t.linear.y = twist_setpoint[4]
-            t.linear.z = twist_setpoint[5]
+            t.linear.x  = twist_setpoint[3]
+            t.linear.y  = twist_setpoint[4]
+            t.linear.z  = twist_setpoint[5]
             self.current_twist_pub.publish(t)
-            
+                    
             jointState = JointState()
+            jointState.header.stamp = rospy.Time.now()
             jointState.name         = robot_labels
             jointState.position     = current_robotpos
             jointState.velocity     = self.sim.VEL[0]
             self.jointState_pub.publish(jointState)
-           
+       
             rate.sleep()
             
         rospy.loginfo('finished')
@@ -496,7 +520,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         if test_standalone:
             simul.standalone_test()

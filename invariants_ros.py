@@ -23,7 +23,7 @@ import tf_conversions as tf
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
-#from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import PoseArray
 #from etasl_invariants_integration.msg import TwistArray
 from etasl_invariants_integration.msg import Trajectory
 import invariant_descriptor_class as invars
@@ -37,6 +37,7 @@ class InvariantsROS:
         # Initialize ROS subscribers and publishers
         rospy.init_node('invariants_ros', anonymous=True)
         self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=10)
+        self.trajectory_pub2 = rospy.Publisher('trajectory_pub2', PoseArray,  queue_size=10)
         rospy.Subscriber("current_pose_pub",Pose,self.callback_currentpose)
         rospy.Subscriber("current_twist_pub",Twist,self.callback_currenttwist)
         rospy.Subscriber('progress_partial',Float32,self.callback_localprogress)
@@ -79,7 +80,19 @@ class InvariantsROS:
         
         target_poses_list2 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_end1,endPose=targetpose_end2,duration=0.5,cyclePeriod=1./nb_samples)
 
-        return target_poses_list1 + target_poses_list2
+        target_poses_list = target_poses_list1 + target_poses_list2
+
+#        # Publish
+#        targetRange_msg = PoseArray()
+#        targetRange_msg.header.stamp = rospy.Time.now()
+#        targetRange_msg.header.frame_id = '/world'
+#        
+#        # Cast target range in ROS message format. Get rid of timestamps by [1], get rid of [0,0,0,1] row by [:-1]
+#        for pose in target_poses_list:
+#            targetRange_msg.poses.append(tf.toMsg(tf.fromMatrix(pose[1][:-1])))
+#        self.targetRange_pub.publish(targetRange_msg)
+        
+        return target_poses_list
 
     def transform_pose_trajectory(self):
       
@@ -126,6 +139,14 @@ class InvariantsROS:
             t.linear.z  = twist[5]
             trajectory_array.twists.append(t)
         self.trajectory_pub.publish(trajectory_array)
+        
+        trajectory_array2 = PoseArray()
+        trajectory_array2.header.stamp = rospy.Time.now()
+        trajectory_array2.header.frame_id = '/world'
+        trajectory_array2.poses = trajectory_array.poses
+        self.trajectory_pub2.publish(trajectory_array2)
+        
+        
         rospy.loginfo('published' + ' traj')
 
     def save_trajectory(self,index='_demo'):

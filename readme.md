@@ -2,8 +2,21 @@
 
 - use roslaunch files to startup code
 
-- at the start invariants_ros should ask for the robots current pose
+- in practice, invariants_ros should ask for the robots current pose
 
+### Running the code
+
+spyder
+
+roscore
+
+param set /use_sim_time true
+
+roslaunch launch/initialize_rviz_ur10.launch
+
+python path_visualisation.py 
+
+rosbag play --clock  -l -s 4.2 2020-05-05-09-15-48.bag 
 
 ### Simulations
 
