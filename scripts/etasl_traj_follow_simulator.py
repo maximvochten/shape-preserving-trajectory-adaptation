@@ -227,8 +227,9 @@ class EtaslSimulator:
             priority = 2,
             K = 10
         }
-        -- ctx:setOutputExpression("Td",Td)
-        -- ctx:setOutputExpression("test",coord_x(origin(ee)))
+        ctx:setOutputExpression("positionerror_x", coord_x(origin(inv(Td)*ee)))
+        ctx:setOutputExpression("positionerror_y", coord_y(origin(inv(Td)*ee)))
+        ctx:setOutputExpression("positionerror_z", coord_z(origin(inv(Td)*ee)))
         """
         sim.readTaskSpecificationString(pose_trajectory_tracking_specification)        
 
@@ -328,6 +329,8 @@ class EtaslSimulator:
                 current_robotpos = self.sim.POS[0]
                 #print current_robotpos
                 #rospy.loginfo(current_robotpos)
+                
+                print self.sim.OUTP
 
                 # Find closest point to trajectory + estimate progress along current trajectory
                 Finit=KDL.Frame()
@@ -520,7 +523,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = False
+        test_standalone = True
         
         if test_standalone:
             simul.standalone_test()
