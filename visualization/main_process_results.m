@@ -12,7 +12,7 @@ addpath(results_folder);
 parameterization = 'geometric';
 dt = 1/60; % timestep
 show_demonstration = 1;
-nb = 23; % nb of trajectories
+nb = 16; % nb of trajectories
 save_videos = 0;
 show_obstacle = 1;
 

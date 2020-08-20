@@ -68,20 +68,25 @@ class InvariantsROS:
 #        targetpose_end[2,3] += 1.0
         
         # Transformation matrix in world frame
-        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.8/2,0.2/2,-0.2/2))
-        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(0.7/2,-0.7/2,-1.7/2),tf.Vector(0.0,0.0,0.0))
+        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.7,0.35,-0.1))
+        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(-0.7,+0.7,-0.7),tf.Vector(0.0,0.0,0.0))
         targetpose_end1 = tf.toMatrix( DeltaT_translation * tf.fromMatrix(targetpose_orig) * DeltaT_rotation )
         
-        target_poses_list1 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_orig,endPose=targetpose_end1,duration=0.5,cyclePeriod=1./nb_samples)
+        target_poses_list1 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_orig,endPose=targetpose_end1,duration=1.0,cyclePeriod=1./nb_samples)
         
-        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.8/2,+0.2/2,-0.2/2))
-        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(0.7/2,-0.7/2,-1.7/2),tf.Vector(0.0,0.0,0.0))
-        targetpose_end2 = tf.toMatrix( DeltaT_translation * tf.fromMatrix(targetpose_end1) * DeltaT_rotation )
+#        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(0.5,-0.2,0.2))
+#        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(0.7/2,-0.7/2,-1.7/2),tf.Vector(0.0,0.0,0.0))
+#        targetpose_end2 = tf.toMatrix( DeltaT_translation * tf.fromMatrix(targetpose_end1) * DeltaT_rotation )
+#        
+#        target_poses_list2 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_end1,endPose=targetpose_end2,duration=0.5,cyclePeriod=1./nb_samples)
+
+        #target_poses_list = target_poses_list1 + target_poses_list2
+
+        target_poses_list = target_poses_list1 #+ target_poses_list2
+ 
+        #target_poses_list = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_end2,endPose=targetpose_orig,duration=1.0,cyclePeriod=1./nb_samples)
+            
         
-        target_poses_list2 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_end1,endPose=targetpose_end2,duration=0.5,cyclePeriod=1./nb_samples)
-
-        target_poses_list = target_poses_list1 + target_poses_list2
-
 #        # Publish
 #        targetRange_msg = PoseArray()
 #        targetRange_msg.header.stamp = rospy.Time.now()

@@ -80,8 +80,10 @@ switch parametrization
             case 'frenetserret'
                 xvector = linspace(0,1,N);
                 label_x = '$\tau$[-]';
-                plotNames = {'{$I_{r1}$[rad]}','{$I_{r2}$[rad]}','{$I_{r3}$[rad]}','{$I_{t1}$[m]}','{$I_{t2}$[rad]}','{$I_{t3}$[rad]}'};
+               % plotNames = {'{$I_{r1}$[rad]}','{$I_{r2}$[rad]}','{$I_{r3}$[rad]}','{$I_{t1}$[m]}','{$I_{t2}$[rad]}','{$I_{t3}$[rad]}'};
                 %plotNames = {'{\boldmath $I_{r1}[rad]$}','{\boldmath $I_{r2}[-]$}','{\boldmath $I_{r3}[-]$}','{\boldmath $I_{t1}[m]$}','{\boldmath $I_{t2}[-]$}','{\boldmath $I_{t3}[-]$}'};
+                        plotNames = {'{$I_{r1}[rad]$}','$I_{r2}[ \frac{rad}{-} ]$','$I_{r3}[ \frac{rad}{-} ]$','{$I_{t1}[m]$}','$I_{t2}[ \frac{rad}{-} ]$','$I_{t3}[ \frac{rad}{-} ]$'};
+
             case 'screw_axis'
                 xvector = linspace(0,1,N);
                 label_x = '$\tau$[-]';
@@ -138,10 +140,11 @@ for i=1:6
         datatoplot = [data1(:,i)];
     end
     if strcmp(descriptor_type,'pose')
+      %  plot(xvector(1:N1),datatoplot,'k','Parent',subplot1,'LineWidth',1.5);
     plot(xvector(1:N1),datatoplot,'color',colororders(1,:),'Parent',subplot1,'LineWidth',1.5);
-    else
-            plot(xvector(1:N1),datatoplot,'k','Parent',subplot1,'LineWidth',2.5);
-    end
+     else
+             plot(xvector(1:N1),datatoplot,'color',colororders(1,:),'Parent',subplot1,'LineWidth',2.5);
+     end
     plot(0,0)
     lastsample = [];
     lastindex = [];
@@ -178,9 +181,9 @@ for i=1:6
                 datatoplot = [extra_sample;data_2(1:N3,i)];
             end
             
-            if i==1 && j==M2
-                datatoplot = datatoplot - 2*pi;
-            end
+%             if i==1 && j==M2
+%                 datatoplot = datatoplot - 2*pi;
+%             end
             
             plot(xvector(N2:N2+N3-1),datatoplot,'Parent',subplot1,'LineWidth',3,'Color',colororders(mod(j-1,7)+1,:),'LineStyle','-');
             

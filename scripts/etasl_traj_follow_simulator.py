@@ -56,7 +56,7 @@ for i in range(Nq):
 fkpos_ee.JntToCart(qinit,Finit)
 
 #Test inverse kinematics
-Finit = KDL.Frame(KDL.Rotation.EulerZYX(-1.4465,0.3998,-2.0707), KDL.Vector(0.4,-0.5,0.85))
+Finit = KDL.Frame(KDL.Rotation.EulerZYX(-1.4465,0.3998,-2.0707), KDL.Vector(0.4,-0.4,0.9))
 ikpos_ee.CartToJnt(qinit,Finit,qinit2)
 print qinit2
 
@@ -265,7 +265,7 @@ class EtaslSimulator:
         }
         """
         
-        sim.readTaskSpecificationString(obstacle_avoidance_specification)
+        #sim.readTaskSpecificationString(obstacle_avoidance_specification)
         
         #sim.displayContext()
         
@@ -390,7 +390,7 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
 #        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
-        current_robotpos = np.array([-1.2913, -1.68006, 1.4826, -1.16354, -0.460297, -1.24451])
+        current_robotpos = np.array([-1.2366, -1.79548, 1.40716, -1.18334, -0.4573147,  -1.12111])
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -421,7 +421,7 @@ class EtaslSimulator:
         local_progress_var = closest_index/(N-1)
         
         # Progress until we are at the end of the current trajectory
-        while local_progress_var < 1 and rospy.get_time()-starttime < 10.0 : 
+        while local_progress_var < 1 and rospy.get_time()-starttime < 20.0 : 
                                    
             # Get setpoint for pose and twist
             #if closest_index == N-2:
@@ -523,7 +523,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         if test_standalone:
             simul.standalone_test()

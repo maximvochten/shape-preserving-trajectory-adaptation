@@ -21,7 +21,7 @@ still can be of use in the near future.
 
 
 import rospy
-import tf
+#import tf
 
 from std_msgs.msg import ColorRGBA
 #from iiwa_msgs.msg import JointPositionVelocity, CartesianPose
@@ -59,77 +59,77 @@ from visualization_msgs.msg import Marker
 #    
 #    return cube
 #
-def makeArrows(nb, pose):
-    #TODO not working properly, arrows orientations are crooked
-    xArrow = Marker()
-    xArrow.color = ColorRGBA(1,0,0,1)
-    xArrow.ns = 'arrow' + str(nb)
-    xArrow.action  = Marker.ADD
-    xArrow.header.frame_id = '/world'
-    xArrow.type = Marker.ARROW
-    xArrow.id = 100 + nb
-    
-    xArrow.scale.x = 0.05
-    xArrow.scale.y = 0.005
-    xArrow.scale.z = 0.01
-    
-    xArrow.pose.position.x = pose[0,3] 
-    xArrow.pose.position.y = pose[1,3] 
-    xArrow.pose.position.z = pose[2,3] 
-    
-    rotM = R.from_rotvec(pose[0,0:3])
-    quat = rotM.as_quat()
-    
-    xArrow.pose.orientation.x = quat[0]
-    xArrow.pose.orientation.y = quat[1]
-    xArrow.pose.orientation.z = quat[2]
-    xArrow.pose.orientation.w = quat[3]
+#def makeArrows(nb, pose):
+#    #TODO not working properly, arrows orientations are crooked
+#    xArrow = Marker()
+#    xArrow.color = ColorRGBA(1,0,0,1)
+#    xArrow.ns = 'arrow' + str(nb)
+#    xArrow.action  = Marker.ADD
+#    xArrow.header.frame_id = '/world'
+#    xArrow.type = Marker.ARROW
+#    xArrow.id = 100 + nb
 #    
-    yArrow = Marker()
-    yArrow.color = ColorRGBA(0,1,0,1)
-    yArrow.ns = 'arrow' + str(nb)
-    yArrow.action  = Marker.ADD
-    yArrow.header.frame_id = '/world'
-    yArrow.type = Marker.ARROW
-    yArrow.id = 600 + nb
-    
-    yArrow.scale.x = 0.05
-    yArrow.scale.y = 0.005
-    yArrow.scale.z = 0.01
-    
-    yArrow.pose.position = xArrow.pose.position
-    
-    rotM = R.from_rotvec(pose[1,0:3])
-    quat = rotM.as_quat()
-    
-    yArrow.pose.orientation.x = quat[0]
-    yArrow.pose.orientation.y = quat[1]
-    yArrow.pose.orientation.z = quat[2]
-    yArrow.pose.orientation.w = quat[3]
-    
-    zArrow = Marker()
-    zArrow.color = ColorRGBA(0,0,1,1)
-    zArrow.ns = 'arrow' + str(nb)
-    zArrow.action  = Marker.ADD
-    zArrow.header.frame_id = '/world'
-    zArrow.type = Marker.ARROW
-    zArrow.id = 1100 + nb
-    
-    zArrow.scale.x = 0.05
-    zArrow.scale.y = 0.005
-    zArrow.scale.z = 0.005
-    
-    zArrow.pose.position = xArrow.pose.position
-    
-    rotM = R.from_rotvec(pose[2,0:3])
-    quat = rotM.as_quat()
-    
-    zArrow.pose.orientation.x = quat[0]
-    zArrow.pose.orientation.y = quat[1]
-    zArrow.pose.orientation.z = quat[2]
-    zArrow.pose.orientation.w = quat[3]
-    
-    return xArrow, yArrow, zArrow
+#    xArrow.scale.x = 0.05
+#    xArrow.scale.y = 0.005
+#    xArrow.scale.z = 0.01
+#    
+#    xArrow.pose.position.x = pose[0,3] 
+#    xArrow.pose.position.y = pose[1,3] 
+#    xArrow.pose.position.z = pose[2,3] 
+#    
+#    rotM = R.from_rotvec(pose[0,0:3])
+#    quat = rotM.as_quat()
+#    
+#    xArrow.pose.orientation.x = quat[0]
+#    xArrow.pose.orientation.y = quat[1]
+#    xArrow.pose.orientation.z = quat[2]
+#    xArrow.pose.orientation.w = quat[3]
+##    
+#    yArrow = Marker()
+#    yArrow.color = ColorRGBA(0,1,0,1)
+#    yArrow.ns = 'arrow' + str(nb)
+#    yArrow.action  = Marker.ADD
+#    yArrow.header.frame_id = '/world'
+#    yArrow.type = Marker.ARROW
+#    yArrow.id = 600 + nb
+#    
+#    yArrow.scale.x = 0.05
+#    yArrow.scale.y = 0.005
+#    yArrow.scale.z = 0.01
+#    
+#    yArrow.pose.position = xArrow.pose.position
+#    
+#    rotM = R.from_rotvec(pose[1,0:3])
+#    quat = rotM.as_quat()
+#    
+#    yArrow.pose.orientation.x = quat[0]
+#    yArrow.pose.orientation.y = quat[1]
+#    yArrow.pose.orientation.z = quat[2]
+#    yArrow.pose.orientation.w = quat[3]
+#    
+#    zArrow = Marker()
+#    zArrow.color = ColorRGBA(0,0,1,1)
+#    zArrow.ns = 'arrow' + str(nb)
+#    zArrow.action  = Marker.ADD
+#    zArrow.header.frame_id = '/world'
+#    zArrow.type = Marker.ARROW
+#    zArrow.id = 1100 + nb
+#    
+#    zArrow.scale.x = 0.05
+#    zArrow.scale.y = 0.005
+#    zArrow.scale.z = 0.005
+#    
+#    zArrow.pose.position = xArrow.pose.position
+#    
+#    rotM = R.from_rotvec(pose[2,0:3])
+#    quat = rotM.as_quat()
+#    
+#    zArrow.pose.orientation.x = quat[0]
+#    zArrow.pose.orientation.y = quat[1]
+#    zArrow.pose.orientation.z = quat[2]
+#    zArrow.pose.orientation.w = quat[3]
+#    
+#    return xArrow, yArrow, zArrow
 #    
 #
 #def showTrajectory(poses, publisher, rgbaColor, frame = '/qbhand1_palm_link', name = 'trajectory'):
@@ -210,7 +210,7 @@ def deleteAllMarkers(visualPublisher):
 
 def sendMarkers(visualPublisher):
     
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(100)
         
         ## Define some variables:
 #        jntPosVelocity = JointPositionVelocity()
@@ -255,30 +255,28 @@ def sendMarkers(visualPublisher):
         #rospy.Subscriber('trajectory/targetPose',     PoseStamped, targetPoseCallback,    queue_size=10)
         rospy.Subscriber('trajectory_pub', Trajectory, trajectoryCallback, queue_size=10)
         #rospy.Subscriber('trajectory/targetRange',    Trajectory,  targetRangeCallback,   queue_size=10)
-        targetpose_pub = rospy.Publisher('targetpose_pub',PoseStamped,queue_size=50)
+        targetpose_pub = rospy.Publisher('targetpose_pub',PoseStamped,queue_size=10)
         
         
         # Blue line "drawn" by the qbSoftHand during its motion
         reachedPoints = Marker()
-        reachedPoints.color = ColorRGBA(0,0,1,1)
+        reachedPoints.color = ColorRGBA(0,0,0,1)
         reachedPoints.ns = 'followedPath'
         reachedPoints.action  = Marker.ADD
         reachedPoints.header.frame_id = '/world'
         reachedPoints.type = Marker.LINE_STRIP
         reachedPoints.id = 0
-        
         reachedPoints.scale.x = 0.005
         reachedPoints.scale.y = 0.005
         
         # Purple points to display the most recently generated trajectory 
         currentTrajectoryMarker = Marker()
-        currentTrajectoryMarker.color = ColorRGBA(1,0,1,1)
+        currentTrajectoryMarker.color = ColorRGBA(1,0,0,1)
         currentTrajectoryMarker.ns = 'trajectory'
         currentTrajectoryMarker.action  = Marker.ADD
         currentTrajectoryMarker.header.frame_id = '/world'
         currentTrajectoryMarker.type = Marker.LINE_STRIP
         currentTrajectoryMarker.id = 1
-        
         currentTrajectoryMarker.scale.x = 0.005
         currentTrajectoryMarker.scale.y = 0.005
         
@@ -336,13 +334,12 @@ def sendMarkers(visualPublisher):
         # Black points that display the trajectory history, accumulation of all trajectory points  contained
         # in all trajectories being generated during the motion of the robot
         trajectoryHistoryMarker = Marker()
-        trajectoryHistoryMarker.color = ColorRGBA(0,0,0,1)
+        trajectoryHistoryMarker.color = ColorRGBA(1,0,0,1)
         trajectoryHistoryMarker.ns = 'trajectoryHistory'
         trajectoryHistoryMarker.action = Marker.ADD
         trajectoryHistoryMarker.header.frame_id = '/world'
         trajectoryHistoryMarker.type = Marker.SPHERE_LIST
         trajectoryHistoryMarker.id = 6
-        
         trajectoryHistoryMarker.scale.x = 0.005
         trajectoryHistoryMarker.scale.y = 0.005
         
@@ -398,7 +395,7 @@ def sendMarkers(visualPublisher):
 #                br.sendTransform(targetpose.position,targetpose.orientation,rospy.Time.now(),'/targetpose','/world')
 
                 
-                plot_obstacle(visualPublisher)    
+               # plot_obstacle(visualPublisher)    
                 
                 
     #            # Publish the target range
@@ -412,8 +409,12 @@ def sendMarkers(visualPublisher):
                 # Publish the trajectory history 
                 trajectoryHistoryMarker.header.stamp = rospy.Time.now()
                 trajectoryHistoryMarker.points = []
-                for trajectory in trajectoryHistoryList:
-                    for pose in trajectory.poses:
+                
+                #print(len(trajectoryHistoryList))
+                
+                for trajectory_entry in trajectoryHistoryList:
+                    #print(len(trajectory_entry.poses))
+                    for pose in trajectory_entry.poses:
                         point = pose.position
                         trajectoryHistoryMarker.points.append(point)
                 visualPublisher.publish(trajectoryHistoryMarker)
