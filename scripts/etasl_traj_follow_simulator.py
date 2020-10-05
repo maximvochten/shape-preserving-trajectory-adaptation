@@ -149,7 +149,7 @@ class EtaslSimulator:
             require("geometric")
             -- Robot:
             local u=UrdfExpr();
-            local fn = rospack_find("etasl_py_examples").."/robots/ur10_robot_reduced.urdf"
+            local fn = rospack_find("etasl_py_examples").."/robots/ur10_robot.urdf"
             u:readFromFile(fn)
             u:addTransform("ee","tool0","base_link")
             local r = u:getExpressions(ctx)
@@ -523,7 +523,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = False
+        test_standalone = True
         
         if test_standalone:
             simul.standalone_test()

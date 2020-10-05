@@ -11,12 +11,11 @@ The idea is to initialize this component using a recorded trajectory from
 which the invariants are then calculated. Given the current and desired trajectory
 states (+ other constraints), this node repeatedly calculates and outputs new trajectories.
 
-input topics: current pose/twist of robot + desired target (and other constraints)
-output topics: pose and twist trajectory
+input topics: current pose/twist of robot + current progress along trajectory
+output topics: trajectory (including pose/twist)
 """
 
-#!/usr/bin/env python
-# license removed for brevity
+
 import rospy
 import rospkg
 import tf_conversions as tf
@@ -25,7 +24,7 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
 #from etasl_invariants_integration.msg import TwistArray
-from etasl_invariants_integration.msg import Trajectory
+from etasl_invariants_integration.msg import Trajectory # this is a custom-made message type
 import invariant_descriptor_class as invars
 import numpy as np
 
@@ -34,7 +33,7 @@ class InvariantsROS:
     def __init__(self,demo_file_location,parameterization):
         '''Define topics and calculate invariants of demonstrated trajectory'''
         
-        # Initialize ROS subscribers and publishers
+        # Initialize ROS node, subscribers and publishers
         rospy.init_node('invariants_ros', anonymous=True)
         self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=10)
         self.trajectory_pub2 = rospy.Publisher('trajectory_pub2', PoseArray,  queue_size=10)
@@ -100,17 +99,20 @@ class InvariantsROS:
         return target_poses_list
 
     def transform_pose_trajectory(self):
-      
+        '''This function is used to globally transform the trajectory so that eventually the new target poses are inside the workspace of the UR10 robot'''
+        #TODO 
+        
         #startpose_orig = self.current_pose_trajectory[0]
         #pose_robot_home = np.array([ [0.330273, 0.000795057,   -0.943885, -0.603343],[0.943885,-0.000797594,    0.330273, -0.1629],[-0.000490251,   -0.999999, -0.00101387, 0.733288],[0,0,0,1] ])
-        
         #pose_robot_home = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0) , tf.Vector(0.2,-1.3,-1.0+0.07))
 
+        # Define an offset translation and rotation as two homogeneous transformation matrices
         DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(0.19,-1.5-0.5,-0.93))
         DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(2.11,-0.13,-0.14),tf.Vector(0.0,0.0,0.0))
         
         #deltapose_world = np.matmul(pose_robot_home,np.linalg.inv(startpose_orig))
         
+        # Apply the offset translation and rotation to the whole trajectory
         for idx,pose in enumerate(self.current_pose_trajectory):
             self.current_pose_trajectory[idx] = tf.toMatrix( DeltaT_translation * tf.fromMatrix(pose) * DeltaT_rotation )
 
@@ -127,13 +129,16 @@ class InvariantsROS:
         
 
     def publish_trajectory(self):
-        '''Put the calculated trajectory (pose/twist) on a topic''' 
-        trajectory_array = Trajectory() # to be put on topic
-        poses = self.current_pose_trajectory
-        twists = self.current_twist_trajectory
+        '''Put the calculated trajectory (pose/twist) on a topic'''
+        
+        trajectory_array = Trajectory() # initialize message
+        poses = self.current_pose_trajectory # Load data from the class properties
+        twists = self.current_twist_trajectory # Load data from the class properties
+        
         for pose in poses:
-            pose_msg = tf.toMsg(tf.fromMatrix(pose))
-            trajectory_array.poses.append(pose_msg)
+            pose_msg = tf.toMsg(tf.fromMatrix(pose)) # convert to pose message
+            trajectory_array.poses.append(pose_msg) # append message to array
+        
         for twist in twists:
             t = Twist()
             t.angular.x = twist[0]
@@ -142,24 +147,28 @@ class InvariantsROS:
             t.linear.x  = twist[3]
             t.linear.y  = twist[4]
             t.linear.z  = twist[5]
-            trajectory_array.twists.append(t)
+            trajectory_array.twists.append(t) # append message to array
+        
         self.trajectory_pub.publish(trajectory_array)
         
+        # This one is purely for visualization, not so efficient...
         trajectory_array2 = PoseArray()
         trajectory_array2.header.stamp = rospy.Time.now()
         trajectory_array2.header.frame_id = '/world'
         trajectory_array2.poses = trajectory_array.poses
         self.trajectory_pub2.publish(trajectory_array2)
         
-        
-        rospy.loginfo('published' + ' traj')
+        rospy.loginfo('published' + ' a trajectory')
 
     def save_trajectory(self,index='_demo'):
         '''Save the calculated trajectory (pose/twist/invariants) to a file'''
+        
+        # Load data from the class properties
         poses = self.current_pose_trajectory
         twists = self.current_twist_trajectory
         invariants = self.current_invariants
         
+        # Reshape matrix data to a 1x12 array, append to text file
         pose_list = []
         for pose in poses:
             pose_list.append(np.append(rospy.get_time(),pose[0:3,:].flatten('F')))
@@ -176,40 +185,45 @@ class InvariantsROS:
         rospy.loginfo('saved' + ' invariants'+str(index)+'.txt')
 
     def first_window(self):
-        '''Generate the first trajectory (+ initializes structure optimization problem for faster trajectories later)'''
+        '''Generate the first trajectory (+ it initializes structure optimization problem for faster trajectories later)'''
         new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.current_pose_trajectory[0], endPose=self.current_pose_trajectory[-1])
+        
+        # Save results to Class properties
         self.current_pose_trajectory = new_trajectory
         self.current_twist_trajectory = new_twists
         self.currentPose = new_trajectory[0]
         self.currentTwist = new_twists[0]
         self.current_invariants = invariants
+        
+        # Publish and save results in a text file
         self.publish_trajectory()
         self.save_trajectory(index=0)
 
     def standalone_test(self,targetposes):
-        '''Use this for testing this component in isolation from etasl'''
-        progress_sequence = [0.2,0.4,0.6,0.8] #start from this point in the trajectory
-        #targetposes = self.simulate_new_target_poses(self.N)
-        old_progress = 0 # goes from 0 to 1
-
-        # For each progress trigger, calculate a new trajectory
-        for idx,progress_val in enumerate(progress_sequence):
+        '''Use this for testing the invariant trajectory generator in complete isolation from eTaSL'''
+        
+        # Progress is a variable between 0 and 1, signifying the arc length along the trajectory
+        current_progress = 0 # goes from 0 to 1
+        progress_trigger_vals = [0.2,0.4,0.6,0.8] # select points along trajectory where a new trajectory needs to be generated
+        
+        # For each progress in progress_trigger_vals, calculate a new trajectory
+        for idx,progress_val in enumerate(progress_trigger_vals):
             
-            # Set window index (important to set model invariants correctly)
+            # Determine index corresponding to start window (important to set the model invariants correctly)
             new_progress = progress_val
             startwindow_index = int(new_progress*self.N)
             targetPose = targetposes[startwindow_index][1]
-            rospy.loginfo('globalprogress: '+str(startwindow_index))
+            rospy.loginfo('globalprogress: '+str(startwindow_index)) # global progress is progress along the complete trajectory
             
-            # Set current pose and twist
-            currentPose_index = int((new_progress-old_progress)*self.N) # subtract past trajectory
+            # Load the pose and twist corresponding to the new progress value
+            currentPose_index = int((new_progress-current_progress)*self.N) # subtract past trajectory
             currentPose = self.current_pose_trajectory[currentPose_index]
             currentTwist = self.current_twist_trajectory[currentPose_index]
-            rospy.loginfo('localprogress: '+str(currentPose_index))
+            rospy.loginfo('localprogress: '+str(currentPose_index)) # local progress is progress along the "current" generated trajectory (which is logically shorter than the complete one)
 
             # Calculation of new trajectory
             new_trajectory, new_twists, invariants = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=currentPose, startTwist=currentTwist, endPose=targetPose)
-            rospy.loginfo('calculated traj')
+            rospy.loginfo('I have calculated a new trajectory')
             
             # Store results
             self.current_pose_trajectory = new_trajectory
@@ -218,15 +232,14 @@ class InvariantsROS:
             #self.currentTwist = new_twists[0]
             self.current_invariants = invariants
             
-            # Communicate results
+            # Publish and save the results in a text file
             self.publish_trajectory()
             self.save_trajectory(index=idx+1)
 
-            old_progress = new_progress
+            current_progress = new_progress
 
     def loop_trajectory_generation_etasl(self,targetposes):
-        '''Generate trajectories towards new endpoints and publish them'''
-        #rospy.sleep(0.1)
+        '''Generate trajectories towards new target poses and publish them'''
         
         counter = 1 # keep track of how many trajectories were calculated already
         globalprogress = 0
@@ -263,40 +276,42 @@ class InvariantsROS:
             counter += 1
 
     def callback_currentpose(self,pose):
-        '''ROS topic message to class property'''
+        '''Save ROS topic message to class property'''
         self.currentPose = tf.toMatrix(tf.fromMsg(pose))
 
     def callback_currenttwist(self,t):
-        '''ROS topic message to class property'''
+        '''Save ROS topic message to class property'''
         twist = np.array([t.angular.x,t.angular.y,t.angular.z,t.linear.x,t.linear.y,t.linear.z])
         self.currentTwist = twist
 
     def callback_localprogress(self,progress):
-        '''ROS topic message to class property'''
+        '''Save ROS topic message to class property'''
         self.localprogress = progress.data
 
 
 if __name__ == '__main__':
     try:
-        # Location file of demonstrated trajectory
+        # Set location of file containing demonstrated trajectory
         demo_traj_file = "sinus.txt" #recorded_motion.csv
         rospack = rospkg.RosPack()
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file
 
-        # Initialization
+        # Load trajectory and calculate invariants
         inv = InvariantsROS(demo_file_location=file_location,parameterization='geometric')
+        
+        # Transform demonstrated trajectory to workspace UR10 robot
         inv.transform_pose_trajectory()
         
-        # Test this component on its own
-        test_standalone = False
+        # Set to True if you want to test this component on its own
+        test_standalone = True
         
-        # This function takes a long time (~0.6 seconds, so keep out of loop)
+        # Simulate new target poses (in a real application this would come in from an external source)
         targetposes = inv.simulate_new_target_poses(inv.N)
         
-        # Do first window (#TODO is this really necessary?)
+        # Generate first new trajectory (#TODO is it really necessary to do this separately?)
         inv.first_window()
 
-        # Handle the other windows
+        # Loop in which new trajectories are continuously generated
         if test_standalone:
             inv.standalone_test(targetposes)
         else:
