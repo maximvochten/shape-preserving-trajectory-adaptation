@@ -2,21 +2,18 @@
 
 Integration of the invariant trajectory generator into eTaSL.
 
-
 ## Current dependencies
 
 - **Ubuntu 18.04** 
 - **ROS melodic** 
-- **Casadi library**: >3.5.1 for Python 2.7. Add the folder to your PYTHONPATH:  
+- **Casadi Python library** for Python 2.7 (at least Casadi 3.5.1).  Add the downloaded folder to your PYTHONPATH using:  
 
-    export PYTHONPATH="${PYTHONPATH}:/home/mvochten/libraries/casadi-linux-py27-v3.5.1-64bit"  
+    export PYTHONPATH="${PYTHONPATH}:<path-to-casadi-library\>/casadi-linux-py27-v3.5.1-64bit"  
 
-    It is advised to put this command in your bashrc script unless you want to repeat it.
+    It is advised to put this command in your .bashrc script unless you want to repeat it each time. If you use Spyder as your Python editor, then you need to run Spyder through the terminal to have the correct PYTHONPATH. Alternatively, you can add change the PYTHONPATH in the settings of Spyder.
 
 - (optional) ma57 linear solver. If you don't have this, you will get an "invalid option" error in Casadi during the call to the solver. You need to replace the "linear_solver" option in the solver definition (inside invariant_descriptor_class.py) from "ma57" to "mumps"  
-- **Etasl** installed (from the general etasl-install repository), but switched to the "devel" branch
-
-Note: etasl-py is not yet updated to Python 3, so I prefer Python 2 for now, also for Casadi.
+- **eTaSL** installed. The code has been tested for eTaSL version 1.3.2. This version of eTaSL uses Python 2, that's why we use the Python 2 version of Casadi. As soon as eTaSL upgrades to Python 3, you can switch Casadi as well.
 
 
 ## Running the code
