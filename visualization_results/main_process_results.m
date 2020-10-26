@@ -16,17 +16,17 @@ nb = 16; % nb of trajectories
 save_videos = 0;
 show_obstacle = 1;
 
-%% Load joint velocities
-results_folder = '../data/results/joints_vel.txt';
-joint_vels = load(results_folder);
-fs = 200;
-N = length(joint_vels);
-time = linspace(0,N*1/fs,N);
-
-figure; plot(time,stairs(joint_vels))
-figure ; plot(time,movmean(joint_vels(:,1:3),20))
-figure; stairs(time,movmean(joint_vels(:,4:6),20))
-
+% %% Load joint velocities
+% results_folder = '../data/results/joints_vel.txt';
+% joint_vels = load(results_folder);
+% fs = 200;
+% N = length(joint_vels);
+% time = linspace(0,N*1/fs,N);
+% 
+% figure; plot(time,stairs(joint_vels))
+% figure ; plot(time,movmean(joint_vels(:,1:3),20))
+% figure; stairs(time,movmean(joint_vels(:,4:6),20))
+% 
 
 
 %% Load measurements + invariants

@@ -777,7 +777,7 @@ class MotionTrajectory:
                 opti.set_initial(U[:,k], np.ones((6,1)))
 
         opti.minimize(objective)
-        opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'ma57'})
+        opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'mumps'})
         #opti.solver('ipopt',struct(),struct('tol',10e-5))
 
 
@@ -1185,7 +1185,7 @@ class MotionTrajectory:
 
         ## objective is done
         opti.minimize(objective)
-        opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'ma57'})
+        opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'mumps'})
 
          # Initialize states + controls
         for k in range(window_length):

@@ -303,7 +303,7 @@ if __name__ == '__main__':
         inv.transform_pose_trajectory()
         
         # Set to True if you want to test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         # Simulate new target poses (in a real application this would come in from an external source)
         targetposes = inv.simulate_new_target_poses(inv.N)

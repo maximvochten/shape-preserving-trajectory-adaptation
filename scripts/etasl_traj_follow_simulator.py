@@ -10,40 +10,46 @@ ROS component that enables trajectory following in eTaSL
 Limitations etasl driver for Python: input/output channels can only be scalars at the moment, I would like frame/twist
 """
 
-#!/usr/bin/env python
+
+"""Load required modules"""
 import rospy
 import rospkg
-import tf_conversions as tf
+
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 #from geometry_msgs.msg import PoseArray
 #from etasl_invariants_integration.msg import TwistArray
+from etasl_invariants_integration.msg import Trajectory # custom message
 from sensor_msgs.msg import JointState
-from etasl_invariants_integration.msg import Trajectory
+import tf_conversions as tf
+
 try:
     from etasl_py.etasl import etasl_simulator
-except ImportError: # sometimes when reimporting it gives an error... (?)
+except ImportError: # sometimes when reimporting it gives an error... I skip this error in this way
     pass 
 import numpy as np
+
+import PyKDL as KDL
+
+'''Load optional modules'''
 from urdf_parser_py.urdf import URDF # installed through ros melodic urdfdom-py
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model # download hrl-kdl from https://github.com/gt-ros-pkg/hrl-kdl/
-import PyKDL as KDL
 
 # Retrieve kinematic chain of the robot from URDF file
 rospack = rospkg.RosPack()
-ur10_urdf = URDF.from_xml_file(rospack.get_path('etasl_py_examples')+'/robots/ur10_robot.urdf')
+ur10_urdf = URDF.from_xml_file(rospack.get_path('etasl_invariants_integration')+'/scripts/robots/ur10_robot_no_position_limits.urdf')
 ur10_urdf_kdl_tree = kdl_tree_from_urdf_model(ur10_urdf)
 #[lowerlimits,upperlimits,names] = urdf_get_joint_limits(ur10_urdf)
-
 ur10_ee = ur10_urdf_kdl_tree.getChain('world','tool0')
 Nq = ur10_ee.getNrOfJoints()
 
-#define forward position kinematics solver + inverse position kinematics solver
+# Define forward position kinematics solver + inverse position kinematics solver
 fkpos_ee = KDL.ChainFkSolverPos_recursive(ur10_ee)
 ikvel_ee = KDL.ChainIkSolverVel_pinv(ur10_ee)
 ikpos_ee = KDL.ChainIkSolverPos_NR(ur10_ee,fkpos_ee,ikvel_ee)
 
+# Initialize empty frame and joint arrays
 Finit = KDL.Frame()
 qinit = KDL.JntArray(Nq)
 qinit2 = KDL.JntArray(Nq)
@@ -55,14 +61,14 @@ for i in range(Nq):
     qinit[i] = current_robotpos[i]  
 fkpos_ee.JntToCart(qinit,Finit)
 
-#Test inverse kinematics
+# Test inverse kinematics
 Finit = KDL.Frame(KDL.Rotation.EulerZYX(-1.4465,0.3998,-2.0707), KDL.Vector(0.4,-0.4,0.9))
 ikpos_ee.CartToJnt(qinit,Finit,qinit2)
 print qinit2
 
 
 def closest_node(point, trajectory):
-    ''' Returns the index of the point in the trajectory to which a given point lies closest'''
+    ''' Returns the index of the point in the trajectory to which a given point lies the closest'''
     trajectory = np.asarray(trajectory) # list to array
     dist_2 = np.sum((trajectory - point)**2, axis=1) # Euclidean distances
     return np.argmin(dist_2)
@@ -87,7 +93,7 @@ def array_to_dict( arr, labels):
     return dict(zip(labels,arr.flatten()))
 
 def skew(omega):
-    ''' Make the skew-symmetric matrix '''
+    ''' Construct the skew-symmetric matrix '''
     return np.array([ [0,-omega[2],omega[1]],
                       [omega[2],0,-omega[0]],
                       [-omega[1],omega[0],0]])
@@ -128,6 +134,7 @@ class EtaslSimulator:
         sim = etasl_simulator(regularization_factor = 0.000001)
     
         # Define robot in etasl
+        #TODO everything related to etasl specifications can be stored in separate lua files and loaded here
         simple_6DOF_robot_specification="""
             require("context")
             require("geometric")
@@ -149,7 +156,7 @@ class EtaslSimulator:
             require("geometric")
             -- Robot:
             local u=UrdfExpr();
-            local fn = rospack_find("etasl_py_examples").."/robots/ur10_robot.urdf"
+            local fn = rospack_find("etasl_invariants_integration").."/scripts/robots/ur10_robot_no_position_limits.urdf"
             u:readFromFile(fn)
             u:addTransform("ee","tool0","base_link")
             local r = u:getExpressions(ctx)
@@ -162,6 +169,7 @@ class EtaslSimulator:
         """
                 
         sim.readTaskSpecificationString(UR10_robot)
+        
         #sim.displayContext()
         
 #        # Define trajectory tracking task
@@ -281,11 +289,16 @@ class EtaslSimulator:
         # Initialization etasl controller
         controller_freq = 200 # frequency in Hz
         rate = rospy.Rate(controller_freq)    
+        
         input_labels = ['R_11','R_12','R_13','R_21','R_22','R_23','R_31','R_32','R_33','p_x','p_y','p_z'] # input variables 
+        
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
+        
         #current_robotpos = np.array([0.3441, 1.657, 1.601, 0.4956, -0.4489, 2.7519]) #np.array([0.14,1.5,1.72]) #        
-        current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451]) #np.array([0.14,1.5,1.72]) #        
+        #current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451]) #np.array([0.14,1.5,1.72]) #        
+        current_robotpos = np.array([-1.2366, -1.79548, 1.40716, -1.18334, -0.4573147,  -1.12111])
+        
         self.sim.initialize(current_robotpos,robot_labels)
  
         # Gather results in this list
@@ -330,6 +343,7 @@ class EtaslSimulator:
                 #print current_robotpos
                 #rospy.loginfo(current_robotpos)
                 
+                print current_robotpos
                 print self.sim.OUTP
 
                 # Find closest point to trajectory + estimate progress along current trajectory
@@ -523,7 +537,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = True
+        test_standalone = False
         
         if test_standalone:
             simul.standalone_test()
