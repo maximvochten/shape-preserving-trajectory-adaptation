@@ -20,6 +20,9 @@ from matplotlib import pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import logm
 
+#
+import math
+
 import casadi as cas
 import integrator_functions as helper
 
@@ -41,13 +44,13 @@ trajectory_generation_parameters = dict({
         })
 
 moving_window_parameters = dict({
-        'window_length'   :   10,   #width of the moving window
+        'window_length'   :   10,   #width of the moving window # 10
         'use_window'    :   True,   #use a moving window along the trajectory, recommended for reducing calculation time of long motions
-        'weigths_end_constraints' : np.array([1.0, 1.0]), # position, rotation
+        'weigths_end_constraints' : np.array([30.0, 1.0]), # position, rotation
         'casadi_opti_stack' : cas.Opti(),
         'first_window_solved' : False,
         'previous_sol' : None,
-        'invariant_weights' : (10**-6)*np.array([1e2, 1.0, 1.0, 1.0, 1.0, 1.0])
+        'invariant_weights' : (10**-7)*np.array([1e4, 1e3, 1e3, 1e1, 1e2, 1e2])
         })
 
 #list of casadi optistack variables
@@ -1024,6 +1027,11 @@ class MotionTrajectory:
 
 
     def generateFirstWindowTrajectory(self, startPose = np.eye(4), startTwist = np.zeros([6,1]), endPose = np.eye(4), simulation = True):
+    #def generateFirstWindowTrajectory(self, startPose = np.eye(4), startTwist = np.zeros([6,1]), endPos = np.zeros([3,1]), endRPY = [None, None, None], simulation = True): 
+        # RPY test
+        #roll_end = cas.SX.sym('roll_end')
+        #pitch_end = cas.SX.sym('pitch_end')
+        #yaw_end = cas.SX.sym('yaw_end')
         
         ## Weights and paramters
         parameters = self.getInvariantParameters()
@@ -1052,6 +1060,12 @@ class MotionTrajectory:
             print "SETTING ENDPOSE TO GIVEN ONE"
             p_end = endPose[0:3,3]
             R_end = endPose[0:3,0:3]
+
+        #p_end = endPos
+            #R_end = [[np.cos(yaw_end)*np.cos(pitch_end), np.cos(yaw_end)*np.sin(pitch_end)*np.sin(roll_end) - np.sin(yaw_end)*np.cos(roll_end), np.cos(yaw_end)*np.sin(pitch_end)*np.cos(roll_end) + np.sin(yaw_end)*np.sin(roll_end)],
+            #        [np.sin(yaw_end)*np.cos(pitch_end), np.sin(yaw_end)*np.sin(pitch_end)*np.sin(roll_end) + np.cos(yaw_end)*np.cos(roll_end), np.sin(yaw_end)*np.sin(pitch_end)*np.cos(roll_end) - np.cos(yaw_end)*np.sin(roll_end)],
+            #        [-np.sin(pitch_end), np.cos(pitch_end)*np.sin(roll_end), np.cos(pitch_end)*np.cos(roll_end)]]
+
 
         ## MPC parameters
         window_parameters = self.getWindowParameters()
@@ -1120,6 +1134,10 @@ class MotionTrajectory:
         R_obj_offset = opti.parameter(3,3)  # offset between end window and target R
         p_obj_offset = opti.parameter(3,1)  # offset between end window and target p
 
+        # TEST
+        #rpy_obj_end = opti.parameter(3,1)
+        #
+
         normV = opti.parameter(1,1) 
         v_normalized = opti.parameter(3,1)
         normOmega = opti.parameter(1,1)
@@ -1174,15 +1192,25 @@ class MotionTrajectory:
         p_obj_reconstruction = cas.mtimes(R_t[-1],L*p_obj_offset) + p_obj[-1]  # apply offset to reconstructed trajectory
 
         R_constraint = cas.mtimes(R_obj_end.T, R_obj_reconstruction)
-
+        
+        #TEST GLENN:
+        #test = cas.SX.sym('test',3,3)
+        rotvec_error = self.getRot(R_constraint) #R_constraint
+        
         ## add SOFT end constraints to the objective
         deltaP = p_obj_end - p_obj_reconstruction
-        objective = objective + 1.0*(cas.mtimes(deltaP.T,deltaP))
+        objective = objective + 30.0*(cas.mtimes(deltaP.T,deltaP))
 
 #        deltaR = (weights_end[3]* R_constraint[0,1] + weights_end[1]*R_constraint[1,2] )
+        #TEST GLENN:
         deltaR = (cas.vec(R_constraint)-np.array([[1.0],[0.0],[0.0],[0.0],[1.0],[0.0],[0.0],[0.0],[1.0]]))
         objective = objective + 1.0*cas.mtimes(deltaR.T, deltaR)
-
+        
+        #rotvec_error_selection = rotvec_error[0:3]
+        #rotvec_error_val = (rotvec_error_selection - np.array([0.0, 0.0]))
+        #objective = objective + 1.0*cas.mtimes(rotvec_error_selection.T, rotvec_error_selection)
+        #objective = objective + 1.0*(rotvec_error_selection[0] + rotvec_error_selection[1])
+        
         ## objective is done
         opti.minimize(objective)
         opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'mumps'})
@@ -1205,6 +1233,20 @@ class MotionTrajectory:
         opti.set_value(p_obj_startwindow, p_start)
 
         opti.set_value(R_obj_end, R_end)
+        
+        #TEST
+        #for k in range(len(endRPY)):
+        #    if endRPY[k] != None:
+        #        opti.set_value(rpy_obj_end[k], endRPY[k])
+        #R_end = [[np.cos(rpy_obj_end[2])*np.cos(rpy_obj_end[1]), np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.sin(rpy_obj_end[0]) - np.sin(rpy_obj_end[2])*np.cos(rpy_obj_end[0]), np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.cos(rpy_obj_end[0]) + np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[0])], [np.sin(rpy_obj_end[2])*np.cos(rpy_obj_end[1]), np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.sin(rpy_obj_end[0]) + np.cos(rpy_obj_end[2])*np.cos(rpy_obj_end[0]), np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.cos(rpy_obj_end[0]) - np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[0])], [-np.sin(rpy_obj_end[1]), np.cos(rpy_obj_end[1])*np.sin(rpy_obj_end[0]), np.cos(rpy_obj_end[1])*np.cos(rpy_obj_end[0])]]
+
+        #opti.subject_to(math.atan2(R_obj_end[2,1], R[2,2]) == rpy_obj_end[0])
+        #opti.subject_to(math.atan2(R_obj_end[1,0], R_obj_end[0,0]) == rpy_obj_end[2])
+        #opti.subject_to(math.atan2(-R_obj_end[2,0], math.cos(rpy_obj_end[2])*R_obj_end[0,0] + math.sin(rpy_obj_end[2])*R_obj_end[1,0]) == rpy_obj_end[1])
+        #opti.subject_to(vec(R_obj_end) == [[np.cos(rpy_obj_end[2])*np.cos(rpy_obj_end[1]), np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.sin(rpy_obj_end[0]) - np.sin(rpy_obj_end[2])*np.cos(rpy_obj_end[0]), np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.cos(rpy_obj_end[0]) + np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[0])], [np.sin(rpy_obj_end[2])*np.cos(rpy_obj_end[1]), np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.sin(rpy_obj_end[0]) + np.cos(rpy_obj_end[2])*np.cos(rpy_obj_end[0]), np.sin(rpy_obj_end[2])*np.sin(rpy_obj_end[1])*np.cos(rpy_obj_end[0]) - np.cos(rpy_obj_end[2])*np.sin(rpy_obj_end[0])], [-np.sin(rpy_obj_end[1]), np.cos(rpy_obj_end[1])*np.sin(rpy_obj_end[0]), np.cos(rpy_obj_end[1])*np.cos(rpy_obj_end[0])]])
+        #opti.subject_to(np.vectorize(R_obj_end) == R_end)
+        
+        #
         opti.set_value(p_obj_end, p_end)
 
 #        else:
@@ -1238,7 +1280,9 @@ class MotionTrajectory:
             
             
         sol = opti.solve()
-
+        # TEST
+        #print(sol.stats()["t_wall_total"])
+        solver_time = sol.stats()["t_wall_total"]
         # retrieve all information, part 1 from window / part 2 by open-loop integration
         
         # Solution Dictionary
@@ -1350,7 +1394,7 @@ class MotionTrajectory:
         
         self.setInvariantSignature(sol_dict)
 
-        return sol_dict['T_obj'], sol_dict['twist_obj'], full_invariants
+        return sol_dict['T_obj'], sol_dict['twist_obj'], full_invariants, solver_time
 
     def generateNextWindowTrajectory(self, n, m, startPose = np.eye(4), startTwist = np.zeros([6,1]), endPose = np.eye(4), simulation = True):
 
@@ -1483,6 +1527,13 @@ class MotionTrajectory:
             opti.set_value(omega_normalized, np.array([1,0,0]))    
         
         sol = opti.solve()
+        #sol.stats()
+        #print(opti.debug.x_describe(0))
+        #print('')
+        #print(opti.debug.g_describe(273))
+        # TEST
+        #print(sol.stats()["t_wall_total"])
+        solver_time = sol.stats()["t_wall_total"]
 
         # retrieve all information, part 1 from window / part 2 by open-loop integration
         
@@ -1598,7 +1649,60 @@ class MotionTrajectory:
         #full_invariants = np.c_[sol_dict['U'],invariants_remaining].transpose()
         full_invariants = np.array(sol_dict['U']).transpose()
         
-        return sol_dict['T_obj'], sol_dict['twist_obj'], full_invariants
+        return sol_dict['T_obj'], sol_dict['twist_obj'], full_invariants, solver_time
+    
+    
+    def crossvec(self,M):
+        return cas.vertcat( (M[2,1]-M[1,2])/2.0, (M[0,2]-M[2,0])/2.0, (M[1,0]-M[0,1])/2.0 )
+        #return np.array([ M[2,1]-M[1,2], M[0,2]-M[2,0], M[1,0] - M[0,1] ])/2.0
+        #return cas.SX(([ (M[2,1]-M[1,2])/2.0, (M[0,2]-M[2,0])/2.0, (M[1,0]-M[0,1])/2.0 ]))
+
+    def logm_so3(self,R):
+        axis = self.crossvec(R)
+        sa   = np.linalg.norm(axis)
+        ca   = (np.trace(R)-1)/2.0
+        if ca<-1:
+            ca=-1
+        if ca>1:
+            ca=1
+        if sa<1E-17:
+            alpha=1/2.0;
+        else:
+            alpha = cas.atan2(sa,ca)/sa/2.0   
+        return (R-R.T)*alpha
+    
+    def getRot(self,R):
+        axis = self.crossvec(R)
+        sa = cas.norm_2(axis)
+        ca = (cas.trace(R)-1.0)/2.0
+        
+        alpha = cas.if_else(sa == 0, 0, cas.atan2(sa,ca)/sa)
+        return axis*alpha
+        
+    
+    
+    #def getRot(self,R):
+        #axis = self.crossvec(R)
+        #axis = cas.Function('axis', [R], [ (R[2,1]-R[1,2])/2.0 , (R[0,2]-R[2,0])/2.0, (R[1,0]-R[0,1])/2.0 ])
+        #R_test = cas.SX.sym('R_test',3,3)
+        #f = cas.Function('f', [R_test], [ (R_test[2,1]-R_test[1,2])/2.0, (R_test[0,2]-R_test[2,0])/2.0, (R_test[1,0]-R_test[0,1])/2.0 ])
+        #axis = cas.SX.sym('axis',3)
+        #axis = f(R).
+        #axis = np.array([ R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0] - R[0,1] ])/2.0
+        #axis = cas.SX([ R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0] - R[0,1] ]/2.0)
+        #axis = cas.SX.sym('axis',3)
+        #axis[0] = (R[2,1]-R[1,2])/2.0
+        #axis[1] = (R[0,2]-R[2,0])/2.0
+        #axis[2] = (R[1,0]-R[0,1])/2.0
+        #sa   = np.linalg.norm(axis)
+        #ca   = (cas.trace(R)-1)/2.0
+        #if sa==0:
+        #    return axis*0
+        #else:
+        #    alpha = math.atan2(sa,ca)/sa
+        #alpha = cas.if_else(sa == 0, 0, cas.atan2(sa,ca)/sa)
+        #return axis*alpha
+        #return axis
 
 
 
