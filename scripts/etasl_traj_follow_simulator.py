@@ -15,7 +15,7 @@ Limitations etasl driver for Python: input/output channels can only be scalars a
 import rospy
 import rospkg
 
-from std_msgs.msg import Float32
+from std_msgs.msg import Float64
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 #from geometry_msgs.msg import PoseArray
@@ -118,7 +118,7 @@ class EtaslSimulator:
         # Initialize ROS publishers        
         self.current_pose_pub = rospy.Publisher('robot_state_pose_pub',Pose,queue_size=50)
         self.current_twist_pub = rospy.Publisher('robot_state_twist_pub',Twist,queue_size=50)
-        self.current_progress_pub = rospy.Publisher('progress_partial',Float32,queue_size=50)
+        self.current_progress_pub = rospy.Publisher('progress_partial',Float64,queue_size=50)
         self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=50)
         
         rospack = rospkg.RosPack()

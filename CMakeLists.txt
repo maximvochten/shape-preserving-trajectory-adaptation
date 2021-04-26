@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    TwistArray.msg
    Trajectory.msg
+   Bsplines.msg
    #Message2.msg
  )
 
