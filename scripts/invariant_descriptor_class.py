@@ -99,6 +99,7 @@ class MotionTrajectory:
         geometricPositions, geometricRotations, s, theta, vnorm_n, omeganorm_n = self.calculateGeometricFromTimebased()
         self.setGeometricMotionTrajectory(geometricPositions, geometricRotations, s, theta)
 
+        self.path_variable = s
         self.velocityprofile_trans = vnorm_n
         self.velocityprofile_rot = omeganorm_n
 
@@ -1206,11 +1207,12 @@ class MotionTrajectory:
         deltaR = (cas.vec(R_constraint)-np.array([[1.0],[0.0],[0.0],[0.0],[1.0],[0.0],[0.0],[0.0],[1.0]]))
         objective = objective + 1.0*cas.mtimes(deltaR.T, deltaR)
         
-        #rotvec_error_selection = rotvec_error[0:3]
+        #rotvec_error_selection = rotvec_error[0:2]
         #rotvec_error_val = (rotvec_error_selection - np.array([0.0, 0.0]))
-        #objective = objective + 1.0*cas.mtimes(rotvec_error_selection.T, rotvec_error_selection)
+        #objective = objective + 2.0*cas.mtimes(rotvec_error_selection.T, rotvec_error_selection)
         #objective = objective + 1.0*(rotvec_error_selection[0] + rotvec_error_selection[1])
         
+        #objective = objective + 0.075*Theta**2
         ## objective is done
         opti.minimize(objective)
         opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'mumps'})

@@ -28,6 +28,7 @@ from geometry_msgs.msg import PoseArray
 #from etasl_invariants_integration.msg import TwistArray
 from etasl_invariants_integration.msg import Trajectory # this is a custom-made message type
 from etasl_invariants_integration.msg import Bsplines # this is a custom-made message type
+from etasl_invariants_integration.msg import VelocityProfile # this is a custom-made message type
 import invariant_descriptor_class as invars
 import numpy as np
 from scipy.interpolate import splrep
@@ -46,6 +47,7 @@ class InvariantsROS:
         self.bspline_pub = rospy.Publisher('bspline_pub',Bsplines,queue_size=10)
         self.bspline_velocity_pub = rospy.Publisher('bspline_vel_pub', Float64, queue_size=10)
         self.eot_pub = rospy.Publisher('eot_pub', Float64, queue_size=10)
+        self.velprof_pub = rospy.Publisher('velprof_pub', VelocityProfile, queue_size=10)
         rospy.Subscriber("current_pose_pub",Pose,self.callback_currentpose)
         rospy.Subscriber("current_twist_pub",Twist,self.callback_currenttwist)
         rospy.Subscriber('progress_partial',Float64,self.callback_localprogress)
@@ -64,7 +66,7 @@ class InvariantsROS:
         self.current_invariants = descriptor.getInvariantsDemo()['U']
         self.shape_descriptor = descriptor
         self.save_trajectory(index='_demo')
-
+        
         # Initialize progress along trajectory (between 0 and 1)
         self.N = len(poses)
         self.localprogress = 0
@@ -73,7 +75,12 @@ class InvariantsROS:
         # Bspline velocity
         self.velocity_bspline = 0.1
         self.s_final = 1.0
-
+        #print(descriptor.velocityprofile_trans)
+        #print(descriptor.velocityprofile_trans/descriptor.path_variable[-1])
+        self.demonstrated_velocityprofile_trans = descriptor.velocityprofile_trans
+        self.demonstrated_length = descriptor.path_variable[-1]
+        self.setVelocityProfile()
+        
     def simulate_new_target_poses(self,nb_samples):
         '''Simulate new desired target poses, in reality this would come from an external measurement system. At the moment the target pose is moving linearly in space'''
         targetpose_orig = self.current_pose_trajectory[-1]
@@ -233,6 +240,7 @@ class InvariantsROS:
         self.save_trajectory(index=0)
         self.publish_bspline()
         self.publish_bspline_velocity()
+        self.publish_velocityprofile()
 
     def standalone_test(self,targetposes):
         '''Use this for testing the invariant trajectory generator in complete isolation from eTaSL'''
@@ -247,7 +255,8 @@ class InvariantsROS:
             # Determine index corresponding to start window (important to set the model invariants correctly)
             new_progress = progress_val
             startwindow_index = int(new_progress*self.N)
-            targetPose = targetposes[startwindow_index][1]
+            #targetPose = targetposes[startwindow_index][1]
+            targetPose = self.targetPose
             rospy.loginfo('globalprogress: '+str(startwindow_index)) # global progress is progress along the complete trajectory
             
             # Load the pose and twist corresponding to the new progress value
@@ -257,7 +266,7 @@ class InvariantsROS:
             rospy.loginfo('localprogress: '+str(currentPose_index)) # local progress is progress along the "current" generated trajectory (which is logically shorter than the complete one)
 
             # Calculation of new trajectory
-            new_trajectory, new_twists, invariants = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=currentPose, startTwist=currentTwist, endPose=targetPose)
+            new_trajectory, new_twists, invariants, solver_time = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=currentPose, startTwist=currentTwist, endPose=self.targetPose)
             rospy.loginfo('I have calculated a new trajectory')
             
             # Store results
@@ -282,8 +291,8 @@ class InvariantsROS:
         globalprogress = 0
         
         # while not at the end of the global trajectory (or total amount of trajectories < 30)
-        while not globalprogress >= 0.9  and not counter == 100: #counter == 30
-        #while not globalprogress >= self.s_final and not counter == 100:
+        while not globalprogress >= 0.95  and not counter == 100: #counter == 30
+        #while not globalprogress >= self.s_final and not counter == 5:
             # Set target pose
             starttime = time.time()
 
@@ -327,11 +336,13 @@ class InvariantsROS:
                 self.publish_bspline()
 
                 counter += 1
-                #time.sleep(0.25)
+                time.sleep(1.0)
                 endtime = time.time()
                 l = self.velocity_bspline * (endtime-starttime)
-                self.s_final = (L-l)/L
+                #self.s_final = (L-l)/L
+                self.s_final = (1-l)
                 #print(self.s_final)
+                #print(1-l)
                 #print(endtime-starttime)
 
         self.signal_eot()
@@ -621,6 +632,21 @@ class InvariantsROS:
     def signal_eot(self):
         val = 1.0
         self.eot_pub.publish(val)
+        
+    def setVelocityProfile(self):
+        geometric_velocityprofile = self.demonstrated_velocityprofile_trans/self.demonstrated_length
+        r = np.linspace(0, 1, len(geometric_velocityprofile))
+        knot_array = np.array([0.25,0.5,0.75])
+        self.tck_sdot = splrep(r, geometric_velocityprofile, k=3, task=-1, t=knot_array)
+        
+    def publish_velocityprofile(self):
+        velprof = VelocityProfile()
+        coefs_velprof = self.tck_sdot[1]
+        coefs_velprof = coefs_velprof[0:-4]
+        for control_point in coefs_velprof:
+            velprof.control_velocityprofile.append(control_point)
+        
+        self.velprof_pub.publish(velprof)
 
 if __name__ == '__main__':
     try:
@@ -641,7 +667,7 @@ if __name__ == '__main__':
         test_standalone = False
         
         # Simulate new target poses (in a real application this would come in from an external source)
-        #targetposes = inv.simulate_new_target_poses(inv.N)
+        targetposes = inv.simulate_new_target_poses(inv.N)
 
         # Generate first new trajectory (#TODO is it really necessary to do this separately?)
         inv.first_window()

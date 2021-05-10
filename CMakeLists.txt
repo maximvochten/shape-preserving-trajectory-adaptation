@@ -53,6 +53,7 @@ find_package(catkin REQUIRED COMPONENTS
    TwistArray.msg
    Trajectory.msg
    Bsplines.msg
+   VelocityProfile.msg
    #Message2.msg
  )
 
