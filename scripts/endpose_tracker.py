@@ -75,12 +75,14 @@ if __name__ == '__main__':
         T_b_t = listener.lookupTransform(robot_base_frame, tracker_frame, rospy.Time(0))
         
         # Neem voorlopig enkel positie data over
-        #mat_T_b_t = tf_c.toMatrix(tf_c.fromTf(T_b_t))
+        mat_T_b_t = tf_c.toMatrix(tf_c.fromTf(T_b_t))
         #temp = np.eye(4)
         #temp[0:2,3] = mat_T_b_t[0:2,3]
-    
-        endpose_msg = tf_c.toMsg(tf_c.fromTf(T_b_t))
-        #endpose_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
+        
+        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, np.pi/4, np.pi), tf_c.Vector(mat_T_b_t[0,3], mat_T_b_t[1,3], mat_T_b_t[2,3]+0.30))
+
+        #endpose_msg = tf_c.toMsg(tf_c.fromTf(T_b_t))
+        endpose_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
         tracker_endpose.publish(endpose_msg)
     
     
