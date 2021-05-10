@@ -291,8 +291,10 @@ class InvariantsROS:
         globalprogress = 0
         
         # while not at the end of the global trajectory (or total amount of trajectories < 30)
-        while not globalprogress >= 0.95  and not counter == 100: #counter == 30
-        #while not globalprogress >= self.s_final and not counter == 5:
+        #while not globalprogress >= 0.95  and not counter == 100: #counter == 30
+        while (not globalprogress >= self.s_final and len(self.current_pose_trajectory) > 15) and not counter == 100:
+            print(len(self.current_pose_trajectory))
+            
             # Set target pose
             starttime = time.time()
 
@@ -336,7 +338,7 @@ class InvariantsROS:
                 self.publish_bspline()
 
                 counter += 1
-                time.sleep(1.0)
+                #time.sleep(1.0)
                 endtime = time.time()
                 l = self.velocity_bspline * (endtime-starttime)
                 #self.s_final = (L-l)/L

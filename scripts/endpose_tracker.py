@@ -14,6 +14,7 @@ import rospy
 import tf
 import tf_conversions as tf_c
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from tf2_msgs.msg import TFMessage
 import time
 import numpy as np
@@ -55,6 +56,7 @@ if __name__ == '__main__':
     print("Start ROS node for endpose tracker")
     rospy.init_node('endpose_tracker', anonymous=True)
     tracker_endpose = rospy.Publisher("target_pose_pub", Pose, queue_size=1)
+    vis_pub = rospy.Publisher("visual_target", PoseStamped, queue_size=1)
     listener = tf.TransformListener()
     
     print("Waiting for something to appear on /tf topic...")
@@ -79,11 +81,18 @@ if __name__ == '__main__':
         #temp = np.eye(4)
         #temp[0:2,3] = mat_T_b_t[0:2,3]
         
-        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, np.pi/4, np.pi), tf_c.Vector(mat_T_b_t[0,3], mat_T_b_t[1,3], mat_T_b_t[2,3]+0.30))
+        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(-np.pi/2, np.pi/6, np.pi), tf_c.Vector(mat_T_b_t[0,3]+0.03, mat_T_b_t[1,3]-0.23, mat_T_b_t[2,3]+0.35))
 
         #endpose_msg = tf_c.toMsg(tf_c.fromTf(T_b_t))
         endpose_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
+
+        visual_target = PoseStamped()
+        visual_target.header.stamp = rospy.Time.now()
+        visual_target.header.frame_id = "panda_link0"
+        visual_target.pose = endpose_msg
+
         tracker_endpose.publish(endpose_msg)
+        vis_pub.publish(visual_target)
     
     
     
