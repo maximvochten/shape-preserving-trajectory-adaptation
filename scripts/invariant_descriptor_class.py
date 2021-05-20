@@ -46,11 +46,11 @@ trajectory_generation_parameters = dict({
 moving_window_parameters = dict({
         'window_length'   :   10,   #width of the moving window # 10
         'use_window'    :   True,   #use a moving window along the trajectory, recommended for reducing calculation time of long motions
-        'weigths_end_constraints' : np.array([30.0, 1.0]), # position, rotation
+        'weigths_end_constraints' : np.array([1.0, 1.0]), # position, rotation (test: 30, 1)
         'casadi_opti_stack' : cas.Opti(),
         'first_window_solved' : False,
         'previous_sol' : None,
-        'invariant_weights' : (10**-7)*np.array([1e4, 1e3, 1e3, 1e1, 1e2, 1e2])
+        'invariant_weights' : (10**-6)*np.array([1e2, 1.0, 1.0, 1.0, 1.0, 1.0]) #(test: (10**-7)*np.array([1e4, 1e3, 1e3, 1e1, 1e2, 1e2])
         })
 
 #list of casadi optistack variables
@@ -1200,7 +1200,7 @@ class MotionTrajectory:
         
         ## add SOFT end constraints to the objective
         deltaP = p_obj_end - p_obj_reconstruction
-        objective = objective + 30.0*(cas.mtimes(deltaP.T,deltaP))
+        objective = objective + 1.0*(cas.mtimes(deltaP.T,deltaP)) # 30*cas.mtimes...
 
 #        deltaR = (weights_end[3]* R_constraint[0,1] + weights_end[1]*R_constraint[1,2] )
         #TEST GLENN:
