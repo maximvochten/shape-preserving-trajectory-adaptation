@@ -371,10 +371,6 @@ class InvariantsROS:
         '''Save ROS topic message to class property'''
         self.targetPose = tf.toMatrix(tf.fromMsg(targetpose))
 
-    def callback_targetpose_real_robot(self,targetpose):
-        '''Save ROS topic message to class property -- In real application, the targetpose is determined by the pose of the HTC Vive tracker'''
-        #self.targetPose = 
-
     def rotation_symmetry_start(self):
         tracker_pose = self.targetPose
         #print(tracker_pose)
