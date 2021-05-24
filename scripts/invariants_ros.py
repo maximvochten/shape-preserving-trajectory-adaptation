@@ -73,7 +73,7 @@ class InvariantsROS:
         self.globalprogress = 0
         
         # Bspline velocity
-        self.velocity_bspline = 0.1
+        self.velocity_bspline = 0.15
         self.s_final = 1.0
         #print(descriptor.velocityprofile_trans)
         #print(descriptor.velocityprofile_trans/descriptor.path_variable[-1])
