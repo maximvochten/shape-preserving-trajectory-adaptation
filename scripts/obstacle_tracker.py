@@ -56,7 +56,7 @@ if __name__ == '__main__':
     print("Start ROS node for endpose tracker")
     rospy.init_node('obstacle_tracker', anonymous=True)
     obstacle_pose = rospy.Publisher("object_pose_pub", Pose, queue_size=1)
-    vis_pub = rospy.Publisher("visual_object_pose", PoseStamped, queue_size=1)
+    #vis_pub = rospy.Publisher("visual_object_pose", PoseStamped, queue_size=1)
     listener = tf.TransformListener()
     
     print("Waiting for something to appear on /tf topic...")
@@ -67,6 +67,8 @@ if __name__ == '__main__':
     robot_base_frame = getFrameName(listener, "robot base frame")
     camera_frame = getFrameName(listener, "camera frame")
     tracker_frame = getFrameName(listener, "tracker frame")
+
+    #T_tra_bol = 
     
     while not rospy.is_shutdown():
         now = rospy.Time.now()       
@@ -81,18 +83,22 @@ if __name__ == '__main__':
         #temp = np.eye(4)
         #temp[0:2,3] = mat_T_b_t[0:2,3]
         
-        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, 0.0, 0.0), tf_c.Vector(mat_T_b_t[0,3]-0.05, mat_T_b_t[1,3]-0.12, mat_T_b_t[2,3]+0.20))
+        #temp = tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, 0.0, 0.0), tf_c.Vector(mat_T_b_t[0,3], mat_T_b_t[1,3], mat_T_b_t[2,3]+0.2))
+
+        T_b_bol =tf_c.fromTf(T_b_t)*tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, 0.0, 0.0),tf_c.Vector(0, 0, +0.20))
+
 
         #endpose_msg = tf_c.toMsg(tf_c.fromTf(T_b_t))
-        obstacle_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
+        #obstacle_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
+        obstacle_msg = tf_c.toMsg(T_b_bol)
 
-        visual_target = PoseStamped()
-        visual_target.header.stamp = rospy.Time.now()
-        visual_target.header.frame_id = "panda_link0"
-        visual_target.pose = endpose_msg
+        #visual_target = PoseStamped()
+        #visual_target.header.stamp = rospy.Time.now()
+        #visual_target.header.frame_id = "panda_link0"
+        #visual_target.pose = obstacle_msg
 
         obstacle_pose.publish(obstacle_msg)
-        vis_pub.publish(visual_target)
+        #vis_pub.publish(visual_target)
     
     
     

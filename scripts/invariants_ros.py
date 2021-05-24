@@ -654,8 +654,8 @@ if __name__ == '__main__':
     try:
         # Set location of file containing demonstrated trajectory
         #demo_traj_file = "sinus.txt" #recorded_motion.csv
-        demo_traj_file = "test_pouring.csv"
-        #demo_traj_file = "pouring_motion.csv"
+        #demo_traj_file = "test_pouring.csv"
+        demo_traj_file = "pouring_motion.csv"
         #demo_traj_file = "curved_motion.csv"
         rospack = rospkg.RosPack()
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file

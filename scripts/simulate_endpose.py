@@ -32,7 +32,7 @@ if __name__ == '__main__':
     
     #endpose = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0), tf.Vector(-0.6, 0.2, 0.3))
     # Franka Panda
-    endpose = tf.Frame(tf.Rotation.EulerZYX(0.0, np.pi/3, np.pi), tf.Vector(0.5, -0.3, 0.2))
+    endpose = tf.Frame(tf.Rotation.EulerZYX(0.0, np.pi/4, np.pi), tf.Vector(0.5, 0.1, 0.2))
     
     theta = 0
     radius = 0.1
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
         # Put endpose data on topic
         visual_target.header.stamp = rospy.Time.now()
-        visual_target.header.frame_id = "world"
+        visual_target.header.frame_id = "panda_link0"
         endpose_msg = tf.toMsg(tf.fromMatrix(endpose))
         visual_target.pose = endpose_msg
         pub.publish(endpose_msg)
