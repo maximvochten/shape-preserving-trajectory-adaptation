@@ -54,7 +54,8 @@ class InvariantsROS:
         #TEST
         rospy.Subscriber("start_traj_pub",Pose,self.callback_startpose)
         rospy.Subscriber("target_pose_pub",Pose,self.callback_targetpose)
-        
+        rospy.Subscriber("bottle_pose_pub",Pose,self.callback_tracker_on_bottle)
+
         rospack = rospkg.RosPack()
 
         # Calculate invariants + return corresponding trajectory, sample period is found from timestamps
@@ -220,7 +221,7 @@ class InvariantsROS:
         #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.current_pose_trajectory[-1])
         #self.rotation_symmetry_start()
         #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.test)
-        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.targetPose)
+        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.bottlePose, endPose=self.targetPose) # Used to be self.startPose, bottlePose is being tested to generalize pouring motion
         #print(len(new_trajectory))
         #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPos=self.targetPose[0:3,3], endRPY = [roll_end, pitch_end, yaw_end])
         #print(invariants[0,0])
@@ -315,7 +316,7 @@ class InvariantsROS:
             if globalprogress <= self.s_final:
                 # Calculate new trajectory
                 #self.rotation_symmetry()
-                new_trajectory, new_twists, invariants, solver_time = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=self.currentPose, startTwist=self.currentTwist, endPose=targetPose)
+                new_trajectory, new_twists, invariants, solver_time = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=self.bottlePose, startTwist=self.currentTwist, endPose=targetPose) # Used to be self.currentPose, bottlePose is being tested to generalize pouring motion
                 #print(len(new_trajectory))
                 rospy.loginfo(' ')
                 #rospy.loginfo('new twists: ' + str(new_twists[0]))
@@ -370,6 +371,10 @@ class InvariantsROS:
     def callback_targetpose(self,targetpose):
         '''Save ROS topic message to class property'''
         self.targetPose = tf.toMatrix(tf.fromMsg(targetpose))
+
+    def callback_tracker_on_bottle(self,trackerpose):
+        '''Topic used during testing of generalization pouring motion'''
+        self.bottlePose = tf.toMatrix(tf.fromMsg(trackerpose))
 
     def rotation_symmetry_start(self):
         tracker_pose = self.targetPose
