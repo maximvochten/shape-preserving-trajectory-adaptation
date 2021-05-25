@@ -2,7 +2,7 @@
 
 Integration of the invariant trajectory generator into eTaSL.
 
-Tested for Ubuntu 18.04, ROS Melodic, eTaSL 1.3.2, Casadi 3.5.1
+Tested for Ubuntu 18.04, ROS Melodic, eTaSL 1.3.2, Casadi 3.5.1, Orocos 2.9
 
 ## Installation
 
@@ -32,6 +32,32 @@ To work with the robot model in Python, we need to install the following package
     cd .. && catkin_make
 
 Actually, the two previous packages should not be required since eTaSL features the same functionality and you can request these things from eTaSL. But I like to check these things in Python too, outside of eTaSL.
+
+### Generation of rtt typekit
+
+Skip this step if you only want to do simulations in Python without Orocos.
+
+To stream data from rostopics onto Orocos ports, you need so-called rtt typekits. These are already available for standard message types in ROS. However, if you define custom message types in ROS, then you need to generate the rtt typekit yourself.
+
+First make sure that Orocos is on the ROS package path (assuming you installed it together with eTaSL):
+
+    source ~/etasl-install/ws/etasl-rtt/devel/setup.bash 
+
+Go to your catkin workspace and generate the typekit using
+
+    cd ~/catkin_ws/src
+    
+    rosrun rtt_roscomm create_rtt_msgs etasl_invariants_integration
+
+Compile the code and source your workspace
+
+    cd .. ; catkin_make
+    
+    source devel/setup.bash 
+
+### Example connecting with port in Orocos
+
+TODO: take inspiration from [here](https://gitlab.kuleuven.be/rob-hardware/pickit_camera#connecting-ros-topic-and-orocos-port)
 
 ## Running the code
 
@@ -104,6 +130,9 @@ Replay experiment with moving target:
     rosbag play --clock -l -s 3.0 data/bagfiles/2020-06-22-15-42-01.bag
 
 Disable/enable visualization of obstacle in path_visualization.py on the line with command `plot_obstacle(`
+
+
+
 
 
 ## Future work
