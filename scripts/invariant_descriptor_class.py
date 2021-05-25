@@ -19,6 +19,7 @@ import scipy
 from matplotlib import pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from scipy.linalg import logm
+import pickle
 
 import casadi as cas
 import integrator_functions as helper
@@ -100,19 +101,30 @@ class MotionTrajectory:
         self.velocityprofile_rot = omeganorm_n
 
         #%% invariant variables
+        invariant_parameters['inv_type'] = invariantType
+        if not(motionDataFile == None) and invariantType == 'timebased':
+            invariant_parameters['h'] = 1.0/60.0  #self.getSamplePeriod() * 10**-9 #timestaps are in ns here..
+        elif invariantType == 'geometric':
+            invariant_parameters['h'] = 1.0/len(s) #self.getSamplePeriod()
+        self.setInvariantParameters()
+            
         if invariantSignatureFile == None:
-            invariant_parameters['inv_type'] = invariantType
-            if not(motionDataFile == None) and invariantType == 'timebased':
-                invariant_parameters['h'] = 1.0/60.0  #self.getSamplePeriod() * 10**-9 #timestaps are in ns here..
-            elif invariantType == 'geometric':
-                invariant_parameters['h'] = 1.0/len(s) #self.getSamplePeriod()
-            self.setInvariantParameters()
             invariant_signature, invariants_demo = self.calculateInvariantSignature()
-            self.setInvariantSignature(invariant_signature)
-            self.setInvariantsDemo(invariants_demo)
-#            self.saveInvariantSignature('./data/saved_invariant_signature.csv')
+            with open('file1.pkl', 'wb') as file:
+                pickle.dump(invariant_signature, file)
+            with open('file2.pkl', 'wb') as file:
+                pickle.dump(invariants_demo, file)
+            #self.saveInvariantSignature('../data/saved_invariant_signature.csv')
         else:
-            self.setInvarientSignatureFileFromFile(invariantSignatureFile)
+            with open('file1.pkl', 'rb') as file:
+                invariant_signature = pickle.load(file)
+            with open('file2.pkl', 'rb') as file:
+                invariants_demo = pickle.load(file)
+
+        self.setInvariantSignature(invariant_signature)
+        self.setInvariantsDemo(invariants_demo)
+            
+            #self.setInvarientSignatureFileFromFile(invariantSignatureFile)
 #
 #
 #        #%% show the MotionTrajectory

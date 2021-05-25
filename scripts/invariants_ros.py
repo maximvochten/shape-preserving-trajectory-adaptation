@@ -30,7 +30,7 @@ import numpy as np
 
 class InvariantsROS:
 
-    def __init__(self,demo_file_location,parameterization):
+    def __init__(self,demo_file_location, parameterization, invariants_file_location = None):
         '''Define topics and calculate invariants of demonstrated trajectory'''
         
         # Initialize ROS node, subscribers and publishers
@@ -43,7 +43,7 @@ class InvariantsROS:
         rospack = rospkg.RosPack()
 
         # Calculate invariants + return corresponding trajectory, sample period is found from timestamps
-        descriptor = invars.MotionTrajectory(demo_file_location, invariantType=parameterization, suppressPlotting=True)
+        descriptor = invars.MotionTrajectory(motionDataFile = demo_file_location, invariantSignatureFile = invariants_file_location, invariantType=parameterization, suppressPlotting=True)
         poses = descriptor.getPosesFromInvariantSignature(descriptor.getInvariantSignature())
         self.results_folder = rospack.get_path('etasl_invariants_integration') + '/data/results/' 
         self.current_pose_trajectory = poses
@@ -297,7 +297,12 @@ if __name__ == '__main__':
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file
 
         # Load trajectory and calculate invariants
-        inv = InvariantsROS(demo_file_location=file_location,parameterization='geometric')
+        bool_use_earlier_calculated_invariants = 1
+        if bool_use_earlier_calculated_invariants:
+            invariants_file_location = 'dummy_not_actually_used'
+            inv = InvariantsROS(demo_file_location=file_location,parameterization='geometric',invariants_file_location=invariants_file_location)
+        else:
+            inv = InvariantsROS(demo_file_location=file_location,parameterization='geometric')
         
         # Transform demonstrated trajectory to workspace UR10 robot
         inv.transform_pose_trajectory()
