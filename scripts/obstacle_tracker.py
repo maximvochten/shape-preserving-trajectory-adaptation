@@ -65,7 +65,7 @@ if __name__ == '__main__':
     print " "
     
     robot_base_frame = getFrameName(listener, "robot base frame")
-    camera_frame = getFrameName(listener, "camera frame")
+    #camera_frame = getFrameName(listener, "camera frame")
     tracker_frame = getFrameName(listener, "tracker frame")
 
     #T_tra_bol = 

@@ -72,6 +72,8 @@ class InvariantsROS:
         self.N = len(poses)
         self.localprogress = 0
         self.globalprogress = 0
+
+        self.offset = np.array([[0.7547429, 0.65584097, -0.01535499,  0.10488448],[0.1728437,  -0.17622062,  0.96905694, -0.12372232],[0.63284137, -0.73404286, -0.24635924, -0.01716197],[0, 0, 0, 1]])
         
         # Bspline velocity
         self.velocity_bspline = 0.15
@@ -215,13 +217,13 @@ class InvariantsROS:
     def first_window(self):
         '''Generate the first trajectory (+ it initializes structure optimization problem for faster trajectories later)'''
         #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.current_pose_trajectory[0], endPose=self.current_pose_trajectory[-1])
-        
+        #currentPose = np.matmul(self.startPose, self.offset)
         #TEST
         #roll_end, pitch_end, yaw_end = self.getRPY(self.targetPose[0:3,0:3])
         #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.current_pose_trajectory[-1])
         #self.rotation_symmetry_start()
         #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.test)
-        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.bottlePose, endPose=self.targetPose) # Used to be self.startPose, bottlePose is being tested to generalize pouring motion
+        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.targetPose) # Used to be self.startPose, bottlePose is being tested to generalize pouring motion
         #print(len(new_trajectory))
         #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPos=self.targetPose[0:3,3], endRPY = [roll_end, pitch_end, yaw_end])
         #print(invariants[0,0])
@@ -312,11 +314,13 @@ class InvariantsROS:
             #rospy.loginfo('starttwist: ' + str(self.currentTwist))
             rospy.loginfo('global progress: ' + str(globalprogress))
             rospy.loginfo('local progress: ' + str(localprogress))
+
+            #currentPose = np.matmul(self.currentPose, self.offset)
             
             if globalprogress <= self.s_final:
                 # Calculate new trajectory
                 #self.rotation_symmetry()
-                new_trajectory, new_twists, invariants, solver_time = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=self.bottlePose, startTwist=self.currentTwist, endPose=targetPose) # Used to be self.currentPose, bottlePose is being tested to generalize pouring motion
+                new_trajectory, new_twists, invariants, solver_time = self.shape_descriptor.generateNextWindowTrajectory(startwindow_index, currentPose_index, startPose=self.currentPose, startTwist=self.currentTwist, endPose=targetPose) # Used to be self.currentPose, bottlePose is being tested to generalize pouring motion
                 #print(len(new_trajectory))
                 rospy.loginfo(' ')
                 #rospy.loginfo('new twists: ' + str(new_twists[0]))

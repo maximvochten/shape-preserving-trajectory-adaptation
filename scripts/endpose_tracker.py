@@ -65,7 +65,7 @@ if __name__ == '__main__':
     print " "
     
     robot_base_frame = getFrameName(listener, "robot base frame")
-    camera_frame = getFrameName(listener, "camera frame")
+    #camera_frame = getFrameName(listener, "camera frame")
     tracker_frame = getFrameName(listener, "tracker frame")
     
     while not rospy.is_shutdown():
@@ -81,7 +81,8 @@ if __name__ == '__main__':
         #temp = np.eye(4)
         #temp[0:2,3] = mat_T_b_t[0:2,3]
         
-        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(0.0, np.pi/6, np.pi), tf_c.Vector(mat_T_b_t[0,3]-0.05, mat_T_b_t[1,3]-0.12, mat_T_b_t[2,3]+0.35))
+        temp = tf_c.Frame(tf_c.Rotation.EulerZYX(90*np.pi/180, 0.0, np.pi), tf_c.Vector(mat_T_b_t[0,3]+0.08, mat_T_b_t[1,3]-0.23, mat_T_b_t[2,3]+0.30))
+        #(0.0, np.pi/6, np.pi)
 
         #endpose_msg = tf_c.toMsg(tf_c.fromTf(T_b_t))
         endpose_msg = tf_c.toMsg(tf_c.fromMatrix(temp))
