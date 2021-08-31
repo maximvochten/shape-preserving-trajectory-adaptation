@@ -33,7 +33,7 @@ if __name__ == '__main__':
     #endpose = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0), tf.Vector(-0.6, 0.2, 0.3))
     # Franka Panda
     #endpose = tf.Frame(tf.Rotation.EulerZYX(90*np.pi/180, 0.0*np.pi/180, 90*np.pi/180), tf.Vector(0.7, -0.1, 0.4))
-    endpose = tf.Frame(tf.Rotation.EulerZYX(60*np.pi/180, 0.0, np.pi), tf.Vector(0.5,0.0,0.4))
+    endpose = tf.Frame(tf.Rotation.EulerZYX(60*np.pi/180, 0.0, np.pi), tf.Vector(0.5,0.0,0.3))
 
     theta = 0
     radius = 0.1

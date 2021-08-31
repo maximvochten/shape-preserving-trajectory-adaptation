@@ -20,7 +20,7 @@ if __name__ == '__main__':
     pub = rospy.Publisher("start_traj_pub", Pose, queue_size=1)
     
     # Set endpose
-    startpose = tf.Frame(tf.Rotation.EulerZYX(0.0, 0.0, np.pi), tf.Vector(0.2, -0.3, 0.55)) #rot_x = np.pi/6
+    startpose = tf.Frame(tf.Rotation.EulerZYX(-135*np.pi/180, -90*np.pi/180, 0.0*np.pi/180), tf.Vector(0.35, -0.40, 0.50))
     
     print "Publishing simulated /start_traj_pub data"
     
