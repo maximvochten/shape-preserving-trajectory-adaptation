@@ -340,7 +340,7 @@ class InvariantsROS:
 
                 self.publish_trajectory()
                 self.save_trajectory(index=counter)
-                self.publish_bspline()
+                #self.publish_bspline()
 
                 counter += 1
                 #time.sleep(1.0)
