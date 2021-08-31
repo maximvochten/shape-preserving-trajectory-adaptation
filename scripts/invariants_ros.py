@@ -54,7 +54,6 @@ class InvariantsROS:
         #TEST
         rospy.Subscriber("start_traj_pub",Pose,self.callback_startpose)
         rospy.Subscriber("target_pose_pub",Pose,self.callback_targetpose)
-        rospy.Subscriber("bottle_pose_pub",Pose,self.callback_tracker_on_bottle)
 
         rospack = rospkg.RosPack()
 
