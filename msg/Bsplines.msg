@@ -2,8 +2,6 @@
 
 Header header
 
-geometry_msgs/Pose[] poses
-
 float64[] knots
 
 geometry_msgs/Point[] control_points
