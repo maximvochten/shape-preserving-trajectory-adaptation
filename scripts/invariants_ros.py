@@ -42,7 +42,7 @@ class InvariantsROS:
         
         # Initialize ROS node, subscribers and publishers
         rospy.init_node('invariants_ros', anonymous=True)
-        self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=10)
+        self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=1)
         self.trajectory_pub2 = rospy.Publisher('trajectory_pub2', PoseArray,  queue_size=10)
         self.bspline_pub = rospy.Publisher('bspline_pub',Bsplines,queue_size=10)
         self.bspline_velocity_pub = rospy.Publisher('bspline_vel_pub', Float64, queue_size=10)
@@ -75,7 +75,7 @@ class InvariantsROS:
         self.offset = np.array([[0.7547429, 0.65584097, -0.01535499,  0.10488448],[0.1728437,  -0.17622062,  0.96905694, -0.12372232],[0.63284137, -0.73404286, -0.24635924, -0.01716197],[0, 0, 0, 1]])
         
         # Bspline velocity
-        self.velocity_bspline = 0.15
+        self.velocity_bspline = 0.1
         self.s_final = 1.0
         #print(descriptor.velocityprofile_trans)
         #print(descriptor.velocityprofile_trans/descriptor.path_variable[-1])
@@ -215,17 +215,7 @@ class InvariantsROS:
 
     def first_window(self):
         '''Generate the first trajectory (+ it initializes structure optimization problem for faster trajectories later)'''
-        #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.current_pose_trajectory[0], endPose=self.current_pose_trajectory[-1])
-        #currentPose = np.matmul(self.startPose, self.offset)
-        #TEST
-        #roll_end, pitch_end, yaw_end = self.getRPY(self.targetPose[0:3,0:3])
-        #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.current_pose_trajectory[-1])
-        #self.rotation_symmetry_start()
-        #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.test)
-        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.targetPose) # Used to be self.startPose, bottlePose is being tested to generalize pouring motion
-        #print(len(new_trajectory))
-        #new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPos=self.targetPose[0:3,3], endRPY = [roll_end, pitch_end, yaw_end])
-        #print(invariants[0,0])
+        new_trajectory,new_twists,invariants,solver_time = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.startPose, endPose=self.targetPose)
         
         # Save results to Class properties
         self.current_pose_trajectory = new_trajectory
@@ -235,16 +225,15 @@ class InvariantsROS:
         self.current_invariants = invariants
         
         # Publish and save results in a text file
-        #TEMP
         self.bspline_parameters()
         self.bspline_quaternion()
         self.publish_trajectory()
         self.save_trajectory(index=0)
-        self.publish_bspline()
+        #self.publish_bspline()
         self.publish_bspline_velocity()
         self.publish_velocityprofile()
 
-    def standalone_test(self,targetposes):
+    def standalone_test(self):
         '''Use this for testing the invariant trajectory generator in complete isolation from eTaSL'''
         
         # Progress is a variable between 0 and 1, signifying the arc length along the trajectory
@@ -257,8 +246,6 @@ class InvariantsROS:
             # Determine index corresponding to start window (important to set the model invariants correctly)
             new_progress = progress_val
             startwindow_index = int(new_progress*self.N)
-            #targetPose = targetposes[startwindow_index][1]
-            targetPose = self.targetPose
             rospy.loginfo('globalprogress: '+str(startwindow_index)) # global progress is progress along the complete trajectory
             
             # Load the pose and twist corresponding to the new progress value
@@ -284,8 +271,6 @@ class InvariantsROS:
 
             current_progress = new_progress
 
-    #def loop_trajectory_generation_etasl(self,targetposes):
-    #TEST
     def loop_trajectory_generation_etasl(self):
         '''Generate trajectories towards new target poses and publish them'''
         
@@ -295,7 +280,7 @@ class InvariantsROS:
         # while not at the end of the global trajectory (or total amount of trajectories < 30)
         #while not globalprogress >= 0.95  and not counter == 100: #counter == 30
         while (not globalprogress >= self.s_final and len(self.current_pose_trajectory) > 15) and not counter == 100:
-            print(len(self.current_pose_trajectory))
+            #print(len(self.current_pose_trajectory))
             
             # Set target pose
             starttime = time.time()
@@ -340,6 +325,7 @@ class InvariantsROS:
                 self.publish_trajectory()
                 self.save_trajectory(index=counter)
                 #self.publish_bspline()
+                #self.publish_bspline_velocity()
 
                 counter += 1
                 #time.sleep(1.0)
@@ -374,60 +360,6 @@ class InvariantsROS:
     def callback_targetpose(self,targetpose):
         '''Save ROS topic message to class property'''
         self.targetPose = tf.toMatrix(tf.fromMsg(targetpose))
-
-    def callback_tracker_on_bottle(self,trackerpose):
-        '''Topic used during testing of generalization pouring motion'''
-        self.bottlePose = tf.toMatrix(tf.fromMsg(trackerpose))
-
-    def rotation_symmetry_start(self):
-        tracker_pose = self.targetPose
-        #print(tracker_pose)
-        #print(tracker_pose[0,0])
-        #print(tracker_pose[2,2])
-        current_pose = self.startPose
-        tracker_rot = tracker_pose[0:3,0:3]
-        current_rot = current_pose[0:3,0:3]
-        #print(tracker_rot)
-        r_tr, p_tr, y_tr = self.getRPY(tracker_rot)
-        r_cur, p_cur, y_cur = self.getRPY(current_rot)
-        target_rot = self.RPYtoR(r_tr, p_tr, y_cur)
-        target = np.eye(4)
-        target[0:3,0:3] = target_rot
-        target[0:3,3] = tracker_pose[0:3,3]
-        self.test = target
-
-    def rotation_symmetry(self):
-        tracker_pose = self.targetPose
-        current_pose = self.startPose
-        tracker_rot = tracker_pose[0:3,0:3]
-        current_rot = current_pose[0:3,0:3]
-        r_tr, p_tr, y_tr = self.getRPY(tracker_rot)
-        r_cur, p_cur, y_cur = self.getRPY(current_rot)
-        target_rot = self.RPYtoR(r_tr, p_tr, y_cur)
-        target = np.eye(4)
-        target[0:3,0:3] = target_rot
-        target[0:3,3] = tracker_pose[0:3,3]
-        self.test = target
-
-
-    def getRPY(self,R):
-        r = math.atan2(R[2,1], R[2,2])
-        y = math.atan2(R[1,0], R[0,0])
-        p = math.atan2(-R[2,0], math.cos(y)*R[0,0] + math.sin(y)*R[1,0])
-        return r,p,y
-
-    def RPYtoR(self,r,p,y):
-        R11 = math.cos(y)*math.cos(p)
-        R12 = math.cos(y)*math.sin(p)*math.sin(r) - math.sin(y)*math.cos(r)
-        R13 = math.cos(y)*math.sin(p)*math.cos(r) + math.sin(y)*math.sin(r)
-        R21 = math.sin(y)*math.cos(p)
-        R22 = math.sin(y)*math.sin(p)*math.sin(r) + math.cos(y)*math.cos(r)
-        R23 = math.sin(y)*math.sin(p)*math.cos(r) - math.cos(y)*math.sin(r)
-        R31 = -math.sin(p)
-        R32 = math.cos(p)*math.sin(r)
-        R33 = math.cos(p)*math.cos(r)
-        R = [[R11, R12, R13], [R21, R22, R23], [R31, R32, R33]]
-        return R
 
     def bspline_parameters(self):
         '''Determine the parameters of B-spline representation of trajectory'''
@@ -510,60 +442,6 @@ class InvariantsROS:
                 qz.append(kz)
                 qw.append(kw)
 
-            #qs = np.sqrt(pose[0,0] + pose[1,1] + pose[2,2] + 1.0)/2
-            #print(qs)
-            #kx = pose[2,1] - pose[1,2]
-            #ky = pose[0,2] - pose[2,0]
-            #kz = pose[1,0] - pose[0,1]
-            #
-            #if pose[0,0] >= pose[1,1] and pose[0,0] >= pose[2,2]:
-            #    kx1 = pose[0,0] - pose[1,1] - pose[2,2] + 1
-            #    ky1 = pose[1,0] + pose[0,1]
-            #    kz1 = pose[2,0] + pose[0,2]
-            #    condition = (kx >= 0)
-            #elif pose[1,1] >= pose[2,2]:
-            #    kx1 = pose[1,0] + pose[0,1]
-            #    ky1 = pose[1,1] - pose[0,0] - pose[2,2] + 1
-            #    kz1 = pose[2,1] + pose[1,2]
-            #    condition = (ky >= 0)
-            #else:
-            #    kx1 = pose[2,0] + pose[0,2]
-            #    ky1 = pose[2,1] + pose[1,2]
-            #    kz1 = pose[2,2] - pose[0,0] - pose[1,1] + 1
-            #    condition = (kz >= 0)
-            #
-            #if condition:
-            #    kx = kx + kx1
-            #    ky = ky + ky1
-            #    kz = kz + kz1
-            #else:
-            #    kx = kx - kx1
-            #    ky = ky - ky1
-            #    kz = kz - kz1
-            #    
-            #nm = np.linalg.norm([kx, ky, kz])
-            ##print(nm)
-            #if nm == 0:
-            #    qx.append(0)
-            #    qy.append(0)
-            #    qz.append(0)
-            #    qw.append(1)
-            #else:
-            #    s = np.sqrt(1 - qs**2)/nm
-            #    qvx = s*kx
-            #    qvy = s*ky
-            #    qvz = s*kz
-            #    if idx > 0 and np.sqrt((qvx - qx[idx-1])**2 + (qvy - qy[idx-1])**2 + (qvz - qz[idx-1])**2 + (qs - qw[idx-1])**2) > 0.5:
-            #        qx.append(-qvx)
-            #        qy.append(-qvy)
-            #        qz.append(-qvz)
-            #        qw.append(-qs)
-            #    else:
-            #        qx.append(qvx)
-            #        qy.append(qvy)
-            #        qz.append(qvz)
-            #        qw.append(qs)
-        #print(len(qx)) 
         s = np.linspace(0, 1, len(qx))
         knot_array = np.array([0.25,0.5,0.75])
         self.tck_qx = splrep(s, qx, k=3, task=-1, t=knot_array) 
@@ -593,32 +471,19 @@ class InvariantsROS:
         coefs_qz = coefs_qz[0:-4]
         coefs_qw = coefs_qw[0:-4]
        
-        #print(coefs_x)
-        #print(coefs_y)
-        #print(coefs_z)
-        #print(coefs_qx)
-        #print(coefs_qy)
-        #print(coefs_qz)
-        #print(coefs_qw)
-        for pose in poses:
-            pose_msg = tf.toMsg(tf.fromMatrix(pose))
-            bspline_array.poses.append(pose_msg)
+        #for pose in poses:
+        #    pose_msg = tf.toMsg(tf.fromMatrix(pose))
+        #    bspline_array.poses.append(pose_msg)
         for knot in knots:
             bspline_array.knots.append(knot)
-        #for coef_x in coefs_x:
-        #    bspline_array.control_points.x.append(coef_x)
-        #for coef_y in coefs_y:
-        #    bspline_array.control_points.y.append(coef_y)
-        #for coef_z in coefs_z:
-        #    bspline_array.control_points.z.append(coef_z)
         
         for i in range(0,len(coefs_x)):
             point = Point()
             point.x = coefs_x[i]
             point.y = coefs_y[i]
             point.z = coefs_z[i]
-            bspline_array.control_points.append(point) #([coefs_x[i], coefs_y[i], coefs_z[i]])
-            
+            bspline_array.control_points.append(point)
+
             quat = Quaternion()
             quat.x = coefs_qx[i]
             quat.y = coefs_qy[i]
@@ -631,10 +496,7 @@ class InvariantsROS:
         
     def publish_bspline_velocity(self):
         self.bspline_velocity_pub.publish(self.velocity_bspline)
-        #counter = 0
-        #while not counter == 20:
-        #    self.bspline_velocity_pub.publish(self.velocity_bspline)
-        #    counter += 1
+    
     def signal_eot(self):
         val = 1.0
         self.eot_pub.publish(val)
@@ -661,6 +523,7 @@ if __name__ == '__main__':
         #demo_traj_file = "test_pouring.csv"
         demo_traj_file = "pouring_motion.csv"
         #demo_traj_file = "curved_motion.csv"
+        #demo_traj_file = "writing_R_glenn.csv"
         rospack = rospkg.RosPack()
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file
 
@@ -677,19 +540,14 @@ if __name__ == '__main__':
 
         # Set to True if you want to test this component on its own
         test_standalone = False
-        
-        # Simulate new target poses (in a real application this would come in from an external source)
-        targetposes = inv.simulate_new_target_poses(inv.N)
 
         # Generate first new trajectory (#TODO is it really necessary to do this separately?)
         inv.first_window()
 
         # Loop in which new trajectories are continuously generated
         if test_standalone:
-            inv.standalone_test(targetposes)
+            inv.standalone_test()
         else:
-            #inv.loop_trajectory_generation_etasl(targetposes)
-            #TEST
             inv.loop_trajectory_generation_etasl()
 
     except rospy.ROSInterruptException:
