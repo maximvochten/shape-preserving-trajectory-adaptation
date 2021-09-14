@@ -1,0 +1,3 @@
+[submodule "scripts/invariants_python"]
+	path = scripts/invariants_python
+	url = git@gitlab.kuleuven.be:robotgenskill/python_projects/invariants_python.git

@@ -5,9 +5,19 @@ Created on Tue Aug 31 11:09:51 2021
 
 @author: Glenn Maes
 
-ROS part of the decoupling
+Script to launch calculation of invariant trajectories and send it to ROS.
+ROS inputs: current pose of robot (/current_pose_pub)
+            current twist of robot (/current_twist_pub)
+            progress robot has made along trajectory (/progress_partial)
+            pose from which the robot has to start executing the generated trajectories (/start_traj_pub)
+            target to which robot has to move (/target_pose_pub)
+            optional: progress rate when B-splines are used to execute motion (/bspline_vel_pub)
+
+ROS outputs: trajectory, defined as a sequence of poses (/trajectory_pub)
+             flag, indicating when the generator has stopped calculating trajectories (/eot_pub)
 """
 
+import time
 import rospy
 import rospkg
 import tf_conversions as tf
@@ -15,22 +25,27 @@ from std_msgs.msg import Float64
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 from etasl_invariants_integration.msg import Trajectory
-import calculate_invariant_trajectory as calc_traj
+from invariants_implementation import calculate_invariant_trajectory as calc_traj
 import numpy as np
 
 class InvariantsROS:
     
     def __init__(self, demo_file_location, parameterization, invariants_file_location = None):
         '''Define topics and calculate trajectories'''
+        # User-defined variables
+        self.use_bsplines = True
         
         # Initialize ROS node, subscribers, and publishers
         rospy.init_node('invariants_ros', anonymous=True)
         self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory, queue_size=10)
+        self.end_of_trajectory = rospy.Publisher('eot_pub', Float64, queue_size=1)
         rospy.Subscriber("current_pose_pub", Pose, self.callback_currentpose)
         rospy.Subscriber("current_twist_pub", Twist, self.callback_currenttwist)
         rospy.Subscriber("progress_partial", Float64, self.callback_localprogress)
         rospy.Subscriber("start_traj_pub", Pose, self.callback_startpose)
         rospy.Subscriber("target_pose_pub", Pose, self.callback_targetpose)
+        if self.use_bsplines:
+            rospy.Subscriber("bspline_vel_pub", Float64, self.callback_prog_rate)
         
         # Define results folder
         rospack = rospkg.RosPack()
@@ -39,6 +54,13 @@ class InvariantsROS:
         # Trajectory generator
         self.traj_data = calc_traj.CalculateTrajectory(demo_file_location, parameterization, invariants_file_location)
 #        self.save_trajectory(index='demo')
+        
+        # Variables to end the generation of trajectories
+        self.globalprogress = 0.0
+        self.s_final = 1.0
+        self.counter = 1
+        self.max_loops = 100
+        self.min_length_trajs = 15      # Not enough discrete poses in trajectory causes optimization problem to fail (be sure this value is larger than the number of poses in the receding window)
 
     def publish_trajectory(self):
         '''Put calculated trajectory on a topic'''
@@ -84,6 +106,14 @@ class InvariantsROS:
         '''Save ROS topic message to Class property'''
         self.targetPose = tf.toMatrix(tf.fromMsg(targetpose))
         
+    def callback_prog_rate(self,progress_rate):
+        '''Save ROS topic message to Class property'''
+        self.progress_rate = progress_rate.data
+        
+    def publish_eot(self):
+        '''Signals the end of trajectory'''
+        self.end_of_trajectory.publish(1)
+        
         
 #    def save_trajectory(self, index='_demo'):
 #        '''Save the calculated trajectory to a file'''
@@ -119,8 +149,17 @@ if __name__ == '__main__':
         inv.publish_trajectory()
         
         # Loop calculation
-        for i in range(0,10):
+        while inv.globalprogress < inv.s_final and len(inv.traj_data.current_pose_trajectory) > inv.min_length_trajs and inv.counter < inv.max_loops:
+            starttime = time.time()
             inv.traj_data.trajectory_generation(inv.currentPose, inv.targetPose, inv.localprogress)
             inv.publish_trajectory()
+            endtime = time.time()
+            # Update end of calculation variables
+            inv.globalprogress += (1-inv.globalprogress)*inv.localprogress
+            if inv.use_bsplines:
+                l = inv.progress_rate*(endtime - starttime)
+                inv.s_final = 1-l
+            inv.counter += 1
+        inv.publish_eot()
     except rospy.ROSInterruptException:
         pass
