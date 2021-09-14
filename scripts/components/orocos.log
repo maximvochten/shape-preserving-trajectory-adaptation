@@ -1,0 +1,55 @@
+0.000 [ Info   ][Logger] No ORO_LOGLEVEL environment variable set.
+0.000 [ Info   ][Logger]  OROCOS version '2.9.0' compiled with GCC 7.5.0. Running in GNU/Linux.
+0.000 [ Info   ][Logger] Orocos Logging Activated at level : [ Warning] ( 4 ) 
+0.000 [ Info   ][Logger] Reference System Time is : 24927691191122 ticks ( 24927.7 seconds ).
+0.000 [ Info   ][Logger] Logging is relative to this time.
+0.000 [ Info   ][Logger] RTT_COMPONENT_PATH was set to: /home/glenn/catkin_ws/devel/lib/orocos:/home/glenn/etasl/ws/etasl-ex/devel/lib/orocos:/home/glenn/etasl/ws/etasl-rtt/devel/lib/orocos:/home/glenn/orocos-install/rtt_ros_ws/devel/lib/orocos:/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos . Searching in: /home/glenn/catkin_ws/devel/lib/orocos:/home/glenn/etasl/ws/etasl-ex/devel/lib/orocos:/home/glenn/etasl/ws/etasl-rtt/devel/lib/orocos:/home/glenn/orocos-install/rtt_ros_ws/devel/lib/orocos:/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos
+0.000 [ Info   ][Logger] plugin 'rtt' not loaded before.
+0.000 [ Info   ][Logger] Loading plugin libraries from directory /home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/./plugins ...
+0.001 [ Info   ][Logger] Loaded RTT Service 'marshalling' from 'rtt-marshalling'
+0.001 [ Info   ][Logger] Loaded RTT Service 'scripting' from 'rtt-scripting'
+0.001 [ Info   ][Logger] typekit 'rtt' not loaded before.
+0.001 [ Info   ][Logger] Loading typekit libraries from directory /home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/./types ...
+0.002 [ Info   ][TypekitRepository::Import] Loading Transport mqueue://rtt-types.
+0.002 [ Info   ][Logger] Loaded RTT TypeKit/Transport 'rtt-mqueue-transport' from 'rtt-transport-mqueue'
+0.027 [ Info   ][TypekitRepository::Import] Loading Typekit rtt-types.
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for int
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for uint
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for llong
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for ullong
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for double
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for float
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for char
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for bool
+0.027 [ Info   ][TypekitRepository::Import] Registered new 'mqueue' transport for array
+0.027 [ Info   ][Logger] Loaded RTT TypeKit/Transport 'rtt-types' from 'rtt-typekit'
+0.028 [ Info   ][Logger] RTT_COMPONENT_PATH was set to: /home/glenn/catkin_ws/devel/lib/orocos:/home/glenn/etasl/ws/etasl-ex/devel/lib/orocos:/home/glenn/etasl/ws/etasl-rtt/devel/lib/orocos:/home/glenn/orocos-install/rtt_ros_ws/devel/lib/orocos:/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos . Searching in: /home/glenn/catkin_ws/devel/lib/orocos:/home/glenn/etasl/ws/etasl-ex/devel/lib/orocos:/home/glenn/etasl/ws/etasl-rtt/devel/lib/orocos:/home/glenn/orocos-install/rtt_ros_ws/devel/lib/orocos:/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos
+0.028 [ Info   ][Thread] Creating Thread for scheduler=ORO_SCHED_OTHER, priority=1, CPU affinity=0, with name='lua'
+0.028 [ Info   ][lua] Thread created with scheduler type 'ORO_SCHED_OTHER', priority 0, cpu affinity 255 and period 0 (PID= 18929 ).
+0.028 [ Info   ][Thread] Creating Thread for scheduler=ORO_SCHED_OTHER, priority=1, CPU affinity=0, with name='Deployer'
+0.028 [ Info   ][Deployer] Thread created with scheduler type 'ORO_SCHED_OTHER', priority 0, cpu affinity 255 and period 0 (PID= 18930 ).
+0.029 [ Info   ][/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/bin/rttlua-gnulinux::main()] No site file was found. Importing 'ocl' by default.
+0.029 [ Info   ][ComponentLoader::import(path_list)] Importing directory /home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl ...
+0.030 [ Info   ][ComponentLoader::import(path_list)] Loaded multi component library '/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/liborocos-ocl-reporting-gnulinux.so'
+0.033 [ Info   ][ComponentLoader::import(path_list)] Loaded component type 'OCL::logging::Log4cxxAppender'
+0.037 [ Info   ][ComponentLoader::import(path_list)] Loaded multi component library '/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/liborocos-ocl-reporting-netcdf-gnulinux.so'
+0.037 [ Info   ][ComponentLoader::import(path_list)] Loaded component type 'OCL::NetcdfReporting'
+0.037 [ Info   ][ComponentLoader::import(path_list)] Loaded component type 'OCL::LuaTLSFComponent'
+0.037 [ Info   ][ComponentLoader::import(path_list)] Loaded component type 'OCL::LuaComponent'
+0.039 [ Info   ][ComponentLoader::import(path_list)] Loaded multi component library '/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/liborocos-ocl-logging-gnulinux.so'
+0.041 [ Info   ][ComponentLoader::import(path_list)] Loaded multi component library '/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/liborocos-ocl-timer-gnulinux.so'
+0.042 [ Info   ][ComponentLoader::import(path_list)] Loaded multi component library '/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/liborocos-ocl-common-gnulinux.so'
+0.043 [ Info   ][ComponentLoader::import(path_list)] Loaded component type 'OCL::HelloWorld'
+0.043 [ Info   ][ComponentLoader::import(path_list)] Loading typekit libraries from directory /home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/types ...
+0.046 [ Info   ][TypekitRepository::Import] Loading Typekit OCLTypekit.
+0.046 [ Info   ][ComponentLoader::import(path_list)] Loaded RTT TypeKit/Transport 'OCLTypekit' from 'ocl'
+0.046 [ Info   ][ComponentLoader::import(path_list)] Loading plugin libraries from directory /home/glenn/orocos-install/orocos-2.9_ws/install_isolated/lib/orocos/gnulinux/ocl/plugins ...
+0.047 [ Info   ][ComponentLoader::import(path_list)] Loaded RTT Service 'LuaTLSF' from 'rttlua-tlsf-plugin'
+0.047 [ Info   ][ComponentLoader::import(path_list)] Loaded RTT Service 'Lua' from 'rttlua-plugin'
+0.049 [ Info   ][ComponentLoader::import(path_list)] Loaded RTT Service 'os' from 'os'
+0.049 [ Info   ][ComponentLoader::import(path_list)] Loaded RTT Service 'print' from 'print'
+0.051 [ Info   ][stopComponentsGroup] Stopping group 0
+0.051 [ Info   ][cleanupComponentsGroup] Cleaning up group 0
+0.051 [ Info   ][/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/bin/rttlua-gnulinux::main()] Unloading group 0
+0.051 [ Info   ][/home/glenn/orocos-install/orocos-2.9_ws/install_isolated/bin/rttlua-gnulinux::main()] Kick-out of group 0 successful.
+0.052 [ Info   ][Logger] Orocos Logging Deactivated.

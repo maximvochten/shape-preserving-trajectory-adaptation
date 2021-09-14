@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro '$(find application_etasl_invariants)/robot_description/urdf/lwr/use_case_setup_lwr.urdf.xacro'" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <node pkg="tf" type="static_transform_publisher" name="vive_broadcaster" args="-1 -1.2 -0.3 0 0 0 1 calib_lwr_arm_base_link camera 100" />
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find application_etasl_invariants)/robot_description/environment_config.rviz"/>
+
+</launch>

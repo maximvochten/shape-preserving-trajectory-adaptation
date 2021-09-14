@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find application_etasl_invariants)/robot_description/urdf/ur10/use_case_setup_ur10.urdf.xacro'" />
+  <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find application_etasl_invariants)/robot_description/urdf/kinova/use_case_setup_gen3.urdf.xacro'" /> -->
+  <!--   <param name="robot_description" textfile="$(find etasl_vision_setup_description)/urdf/etasl_vision_scene.urdf" /> -->
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find application_etasl_invariants)/robot_description/environment_config.rviz"/>
+  <include file="$(find etasl_rtt)/launch/rttlua.launch">
+        <arg name="RTTLUA_ARGS" value="$(find viz_marker)/scripts/deploy/deploy_viz.lua"/>
+        <arg name="INTERACTIVE" value="true"/>
+        <arg name="DEBUG" value="false"/>
+    </include>
+
+</launch>

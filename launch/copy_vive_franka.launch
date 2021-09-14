@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find application_etasl_invariants)/robot_description/urdf/franka_panda/use_case_setup_panda.urdf.xacro'" />
+  <!--   <param name="robot_description" textfile="$(find etasl_vision_setup_description)/urdf/etasl_vision_scene.urdf" /> -->
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!--<node name="rviz" pkg="rviz" type="rviz" args="-d $(find application_etasl_invariants)/robot_description/environment_config.rviz"/>
+-->
+  <node pkg="tf"
+        type="static_transform_publisher"
+        name="T_c_b"
+	args="-0.3557171355581377 -0.7012643067722573 -1.8926421036114984 -0.509230519621324 0.4039448040742309 0.4725929077326447 0.5951208421055605 lighthouse_LHB_40024E4C panda_link0 10"/>
+
+</launch>
