@@ -53,7 +53,7 @@ class InvariantsROS:
         
         # Trajectory generator
         self.traj_data = calc_traj.CalculateTrajectory(demo_file_location, parameterization, invariants_file_location)
-#        self.save_trajectory(index='demo')
+        self.save_trajectory(index='demo')
         
         # Variables to end the generation of trajectories
         self.globalprogress = 0.0
@@ -114,20 +114,29 @@ class InvariantsROS:
         '''Signals the end of trajectory'''
         self.end_of_trajectory.publish(1)
         
+    def save_trajectory(self, index='_demo'):
+        '''Save the calculated trajectory to a file'''
         
-#    def save_trajectory(self, index='_demo'):
-#        '''Save the calculated trajectory to a file'''
-#        
-#        # Load data from trajectory generator data
-#        poses = self.traj_data.current_pose_trajectory
-#        twists = self.traj_data.current_twist_trajectory
-#        invariants = self.traj_data.current_invariants
-#        
-#        # Reshape matrix data to a 1x12 array, and append to text file
-#        pose_list = []
-#        for pose in poses:
-#            pose_list.append(np.append(rospy.get_time(),pose[0:3,:].flatten('F')))
-#        np.savetxt(self.results_folder + 'traj')
+        # Load data from trajectory generator data
+        poses = self.traj_data.current_pose_trajectory
+        twists = self.traj_data.current_twist_trajectory
+        invariants = self.traj_data.current_invariants
+        
+        # Reshape matrix data to a 1x12 array, and append to text file
+        pose_list = []
+        for pose in poses:
+            pose_list.append(np.append(rospy.get_time(),pose[0:3,:].flatten('F')))
+        np.savetxt(self.results_folder + 'traj'+str(index)+'.txt', pose_list)
+        rospy.loginfo('saved' + ' traj'+str(index)+'.txt')
+
+        twist_list = []
+        for twist in twists:
+            twist_list.append(np.append(rospy.get_time(),twist))
+        np.savetxt(self.results_folder + 'twist'+str(index)+'.txt', twist_list)
+        rospy.loginfo('saved' + ' twist'+str(index)+'.txt')
+
+        np.savetxt(self.results_folder + 'invariants'+str(index)+'.txt', invariants.transpose())
+        rospy.loginfo('saved' + ' invariants'+str(index)+'.txt')
         
 if __name__ == '__main__':
     try:
@@ -137,7 +146,7 @@ if __name__ == '__main__':
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file
         
         # Load trajectory & calculate invariants
-        bool_use_earlier_invariants = 1
+        bool_use_earlier_invariants = 0
         if bool_use_earlier_invariants:
             invariants_file_location = 'dummy_not_actually_used'
             inv = InvariantsROS(demo_file_location=file_location, parameterization='geometric', invariants_file_location=invariants_file_location)
@@ -147,12 +156,14 @@ if __name__ == '__main__':
         # Calculate first window
         inv.traj_data.first_window(inv.startPose, inv.targetPose)
         inv.publish_trajectory()
-        
+        inv.save_trajectory(index=0)
+
         # Loop calculation
         while inv.globalprogress < inv.s_final and len(inv.traj_data.current_pose_trajectory) > inv.min_length_trajs and inv.counter < inv.max_loops:
             starttime = time.time()
             inv.traj_data.trajectory_generation(inv.currentPose, inv.targetPose, inv.localprogress)
             inv.publish_trajectory()
+            inv.save_trajectory(index=inv.counter)
             endtime = time.time()
             # Update end of calculation variables
             inv.globalprogress += (1-inv.globalprogress)*inv.localprogress
