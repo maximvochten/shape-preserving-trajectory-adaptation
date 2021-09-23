@@ -2,6 +2,7 @@
 
 2020-05-12-08-07-24.bag
 
+*.log
 data/results
 data/bagfiles
 *.pkl
