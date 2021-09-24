@@ -16,6 +16,9 @@ tc:addPort(start_trajectory)
 start_traj = rtt.OutputPort("geometry_msgs/Pose","start_traj", "Start of invariants trajectory, streamed to ROS Topic")
 tc:addPort(start_traj)
 
+current_pose = rtt.OutputPort("geometry_msgs/Pose", "current_pose", "Current robot pose message")
+tc:addPort(current_pose)
+
 pose_setpoint = rtt.OutputPort("KDL.Frame","pose_setpoint","Next pose in trajectory")
 tc:addPort(pose_setpoint)
 
@@ -110,6 +113,23 @@ function updateHook()
 
         end
 
+	if (fs2 ~= 'NoData') then
+		local current_pose_holder = rtt.Variable("geometry_msgs/Pose")
+		current_pose_holder.position.x = pose.p.X
+		current_pose_holder.position.y = pose.p.Y
+		current_pose_holder.position.z = pose.p.Z
+		local qx = rtt.Variable("double")
+		local qy = rtt.Variable("double")
+		local qz = rtt.Variable("double")
+		local qw = rtt.Variable("double")
+		rot_quat:GetQuaternion(pose_data.M,qx,qy,qz,qw)
+		current_pose_holder.orientation.x = qx
+		current_pose_holder.orientation.y = qy
+		current_pose_holder.orientation.z = qz
+		current_pose_holder.orientation.w = qw
+		current_pose:write(current_pose_holder)
+	end
+	
 	if (fs3 ~= 'NoData') then
 		start_traj_holder.position.x = start_traj_tab.p.X
 		start_traj_holder.position.y = start_traj_tab.p.Y

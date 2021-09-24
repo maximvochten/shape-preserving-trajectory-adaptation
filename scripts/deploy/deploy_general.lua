@@ -117,6 +117,7 @@ depl:connect("invariants.twist_setpoint","etaslcore.target_twist",cp)
 
 depl:stream("invariants.current_progress", ros:topic("progress_partial"))
 depl:stream("invariants.start_traj", ros:topic("start_traj_pub"))
+depl:stream("invariants.current_pose", ros:topic("current_pose_pub"))
 invariants:configure()
 invariants:start()
 

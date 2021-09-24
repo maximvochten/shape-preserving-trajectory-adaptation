@@ -37,6 +37,7 @@ class InvariantsROS:
         
         # Initialize ROS node, subscribers, and publishers
         rospy.init_node('invariants_ros', anonymous=True)
+        self.localprogress = 0
         self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory, queue_size=10)
         self.end_of_trajectory = rospy.Publisher('eot_pub', Float64, queue_size=1)
         rospy.Subscriber("current_pose_pub", Pose, self.callback_currentpose)
