@@ -35,19 +35,20 @@ import PyKDL as KDL
 '''Load optional modules'''
 from urdf_parser_py.urdf import URDF # installed through ros melodic urdfdom-py
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model # download hrl-kdl from https://github.com/gt-ros-pkg/hrl-kdl/
-
+# Robot name: panda, iiwa, gen3 (Kinova), lwr, ur10
+robot_name = 'ur10'
 # Retrieve kinematic chain of the robot from URDF file
 rospack = rospkg.RosPack()
-ur10_urdf = URDF.from_xml_file(rospack.get_path('etasl_invariants_integration')+'/scripts/robots/ur10_robot_no_position_limits.urdf')
-ur10_urdf_kdl_tree = kdl_tree_from_urdf_model(ur10_urdf)
+robot_urdf = URDF.from_xml_file(rospack.get_path('etasl_invariants_integration')+'/robot_description/urdf/'+robot_name+'/use_case_setup_'+robot_name+'.urdf')
+robot_urdf_kdl_tree = kdl_tree_from_urdf_model(robot_urdf)
 #[lowerlimits,upperlimits,names] = urdf_get_joint_limits(ur10_urdf)
-ur10_ee = ur10_urdf_kdl_tree.getChain('world','tool0')
-Nq = ur10_ee.getNrOfJoints()
+robot_ee = robot_urdf_kdl_tree.getChain('world','TCP_frame')
+Nq = robot_ee.getNrOfJoints()
 
 # Define forward position kinematics solver + inverse position kinematics solver
-fkpos_ee = KDL.ChainFkSolverPos_recursive(ur10_ee)
-ikvel_ee = KDL.ChainIkSolverVel_pinv(ur10_ee)
-ikpos_ee = KDL.ChainIkSolverPos_NR(ur10_ee,fkpos_ee,ikvel_ee)
+fkpos_ee = KDL.ChainFkSolverPos_recursive(robot_ee)
+ikvel_ee = KDL.ChainIkSolverVel_pinv(robot_ee)
+ikpos_ee = KDL.ChainIkSolverPos_NR(robot_ee,fkpos_ee,ikvel_ee)
 
 # Initialize empty frame and joint arrays
 Finit = KDL.Frame()
@@ -116,8 +117,9 @@ class EtaslSimulator:
         rospy.Subscriber("/trajectory_pub",Trajectory,self.callback_traj)
 
         # Initialize ROS publishers        
-        self.current_pose_pub = rospy.Publisher('robot_state_pose_pub',Pose,queue_size=50)
-        self.current_twist_pub = rospy.Publisher('robot_state_twist_pub',Twist,queue_size=50)
+        self.start_traj_pub = rospy.Publisher('start_traj_pub',Pose,queue_size=50)
+        self.current_pose_pub = rospy.Publisher('current_pose_pub',Pose,queue_size=50)
+        self.current_twist_pub = rospy.Publisher('current_twist_pub',Twist,queue_size=50)
         self.current_progress_pub = rospy.Publisher('progress_partial',Float64,queue_size=50)
         self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=50)
         
@@ -151,14 +153,15 @@ class EtaslSimulator:
             -- ctx:setOutputExpression("ee",ee)
         """
         
-        UR10_robot="""
+        robot="""
             require("context")
             require("geometric")
             -- Robot:
+            robot_name = "ur10"
             local u=UrdfExpr();
-            local fn = rospack_find("etasl_invariants_integration").."/scripts/robots/ur10_robot_no_position_limits.urdf"
+            local fn = rospack_find("etasl_invariants_integration").."/robot_description/urdf/"..robot_name.."/use_case_setup_"..robot_name..".urdf"
             u:readFromFile(fn)
-            u:addTransform("ee","tool0","base_link")
+            u:addTransform("ee","TCP_frame","base_link")
             local r = u:getExpressions(ctx)
             ee = r.ee
             robot_jname={"shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"}
@@ -168,7 +171,7 @@ class EtaslSimulator:
             end
         """
                 
-        sim.readTaskSpecificationString(UR10_robot)
+        sim.readTaskSpecificationString(robot)
         
         #sim.displayContext()
         
@@ -404,7 +407,16 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
 #        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
+        startpos_ee = KDL.Frame()
+        qinit = KDL.JntArray(Nq)
         current_robotpos = np.array([-1.2366, -1.79548, 1.40716, -1.18334, -0.4573147,  -1.12111])
+        for i in range(Nq):
+            qinit[i] = current_robotpos[i]
+        fkpos_ee.JntToCart(qinit, startpos_ee)
+        while self.start_traj_pub.get_num_connections() < 1:
+            pass
+        self.start_traj_pub.publish(tf.toMsg(startpos_ee))
+        
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -413,6 +425,7 @@ class EtaslSimulator:
         #rospy.wait_for_message("/pose_traj_pub",PoseArray)
         #rospy.wait_for_message("/twist_traj_pub",TwistArray)
         rospy.wait_for_message("/trajectory_pub",Trajectory)
+            
         starttime = rospy.get_time()
 
 
