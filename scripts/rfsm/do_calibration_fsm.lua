@@ -46,7 +46,7 @@ target_pos4 = {-1.23, -0.35, 0.12, -1.96, 0.91, 2.00, 0.03, 0.00}
 target_pos5 = {-0.40, 0.71, -0.75, -2.11, -1.90, 1.93, 0.24, 0.00}
 
 
-etasl_application_dir = rtt.provides("ros"):find("application_etasl_invariants")
+etasl_application_dir = rtt.provides("ros"):find("etasl_invariants_integration")
 return rfsm.state {
    configured = rfsm.state {
       entry=function()

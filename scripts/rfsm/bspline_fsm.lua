@@ -37,7 +37,7 @@ function driver_particularities()
   end
 end
 
-etasl_application_dir = rtt.provides("ros"):find("application_etasl_invariants")
+etasl_application_dir = rtt.provides("ros"):find("etasl_invariants_integration")
 return rfsm.state {
    configured = rfsm.state {
       entry=function()

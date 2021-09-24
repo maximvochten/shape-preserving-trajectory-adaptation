@@ -42,7 +42,7 @@ ros:import("etasl_rtt")
 ros:import("rtt_rospack")
 rttlib.color = true
 
-etasl_application_dir = rtt.provides("ros"):find("application_etasl_invariants")
+etasl_application_dir = rtt.provides("ros"):find("etasl_invariants_integration")
 robot_def_dir = etasl_application_dir .. "/scripts/etasl/robot_def"
 
 -- The following will make run always in simulation, unless you provide "deploy_robot as the first argument"

@@ -7,7 +7,7 @@
 local M = {}
 
 function deploy_driver(timefreq)
-      this_package_dir = rtt.provides("ros"):find("application_etasl_invariants")
+      this_package_dir = rtt.provides("ros"):find("etasl_invariants_integration")
       ros:import("rtt_lwr_fri_msgs")
       lwr_driver_dir = rtt.provides("ros"):find("lwr_fri")
       ros:import("lwr_fri")

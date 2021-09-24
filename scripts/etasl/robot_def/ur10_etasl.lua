@@ -3,7 +3,7 @@ require("geometric")
 
 -- loading a model for the unversal robot UR10:
 local u=UrdfExpr();
-u:readFromFile(rospack_find("application_etasl_invariants").."/robot_description/urdf/ur10/use_case_setup_ur10.urdf")
+u:readFromFile(rospack_find("etasl_invariants_integration").."/robot_description/urdf/ur10/use_case_setup_ur10.urdf")
 u:addTransform("ee","tool0","base")
 u:addTransform("FT_frame","load_cell_link","base")
 u:addTransform("TCP_frame","TCP_frame","base")

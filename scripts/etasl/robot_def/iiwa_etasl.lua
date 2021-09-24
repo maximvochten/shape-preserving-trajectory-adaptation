@@ -2,7 +2,7 @@ require("context")
 require("geometric")
 
 local u=UrdfExpr();
-u:readFromFile(rospack_find("application_etasl_invariants").."/robot_description/urdf/iiwa/use_case_setup_iiwa.urdf")
+u:readFromFile(rospack_find("etasl_invariants_integration").."/robot_description/urdf/iiwa/use_case_setup_iiwa.urdf")
 u:addTransform("tool_frame","tool_frame","world")
 
 local r = u:getExpressions(ctx)
