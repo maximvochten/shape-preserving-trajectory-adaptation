@@ -4,6 +4,11 @@ Integration of the invariant trajectory generator into eTaSL.
 
 Tested for Ubuntu 18.04, ROS Melodic, eTaSL 1.3.2, Casadi 3.5.1, Orocos 2.9
 
+**IMPORTANT:** Clone this package using the following command:
+
+    git clone --recursive git@gitlab.kuleuven.be:robotgenskill/python_projects/etasl_invariants_integration.git
+
+Otherwise, the symbolic link between this repo and the invariants\_python repository is broken, and trajectories will not be generated
 ## Installation
 
 We assume that ROS and eTaSL are installed.
@@ -60,7 +65,9 @@ Compile the code and source your workspace
 TODO: take inspiration from [here](https://gitlab.kuleuven.be/rob-hardware/pickit_camera#connecting-ros-topic-and-orocos-port)
 
 ## Running the code
+There are two options to run the trajectory generator: the first one uses the Python driver of eTaSL, whereas the second option contains a full robot application in a ROS/Orocos environment.
 
+### Option 1: Python driver of eTaSL
 Open a terminal and start up ROS:
 
     roscore
@@ -69,9 +76,13 @@ Then, start the eTaSL controller. It will wait for the first trajectory:
 
     rosrun etasl_invariants_integration etasl_traj_follow_simulator.py
 
-Then start the trajectory generator:
+Also, run the following script to provide a target pose for the trajectories to be calculated towards:
 
-    rosrun etasl_invariants_integration invariants_ros.py
+    rosrun etasl_invariants_integration simulate_endpose.py
+
+Finally, start the trajectory generator:
+
+    rosrun etasl_invariants_integration ros_communicate_trajectories.py
 
 Results (trajectories, twists, joint angles) are automatically saved in text files.
 
@@ -84,9 +95,9 @@ Record results during execution (necessary for later off-line visualization in r
     
 #### Optional: simultaneous visualization in rviz
 
-Prior to running the code above, run the following commands:
+Prior to running the code above, run the following commands, where 'robot-name' is changed by the robot of your choice. Currently 5 robots are supported (conform the [etasl application template](https://gitlab.kuleuven.be/etasl/etasl_application_template): Universal Robots UR10, Kinova Gen3, Franka Emika Panda, KUKA LWR and KUKA iiwa:
 
-    roslaunch etasl_invariants_integration initialize_rviz_ur10.launch
+    roslaunch etasl_invariants_integration load_setup_'robot-name'.launch
 
     rosrun etasl_invariants_integration path_visualisation.py
 
@@ -94,10 +105,49 @@ I recommend not doing this together with rosbag record since then the visualizat
 
 #### Parameters
 
-The motion of the moving target is now hardcoded in the `function simulate_new_target_poses` in `invariants_ros.py`.
-
 You can enable/disable obstacle avoidance by (un)commenting `sim.readTaskSpecificationString(obstacle_avoidance_specification)` in `etasl_traj_follow_simulator.py`
 
+### Option 2: full robot application
+Open a terminal and start up ROS:
+
+    roscore
+
+Then, choose whether you want to use a simulated target pose or the target pose of a real target (currently only HTC Vive supported; make sure as well that robot and Vive system are [calibrated](https://gitlab.kuleuven.be/rob-hardware/htc-vive#calibration-of-htc-vive-and-robot-system)):
+
+    rosrun etasl_invariants_integration simulate_endpose.py
+
+or
+
+    rosrun etasl_invariants_integration tracker_endpose.py
+
+Next, deploy the trajectory following application:
+
+    roscd etasl_invariants_integration/scripts/deploy
+    rttlua -i deploy_general.lua (real_robot)
+
+The real\_robot command can be used when the application needs to be used on a real robot.
+
+Finally, run the trajectory generator:
+
+    rosrun etasl_invariants_integration ros_communicate_trajectories.py
+
+#### Smoother behavior by using B-splines
+As an improvement to the discrete trajectory following procedure, an alternative is presented as well, where a B-spline fit of the trajectory is done to obtain a smoother following behavior. In order to use this, make sure the [ros spline fitting trajectory](https://gitlab.kuleuven.be/robotgenskill/python_projects/ros-spline-fitting-trajectory) repository is in your catkin workspace as well.
+
+_Note:_ if you want to use this on a real robot, make sure you generate the typekit.
+
+Now, after you ran roscore and the target pose commands, use the following to start the spline fitter:
+
+    rosrun ros_spline_fitting_trajectory spline_fitting.py
+
+Next, deploy another application, namely:
+
+    roscd etasl_invariants_integration/scripts/deploy
+    rttlua -i bspline_deploy.lua (real_robot)
+
+Then, again, run the trajectory generator:
+
+    rosrun etasl_invariants_integration ros_communicate_trajectories.py 
 
 ## Offline visualization of results in Matlab
 
