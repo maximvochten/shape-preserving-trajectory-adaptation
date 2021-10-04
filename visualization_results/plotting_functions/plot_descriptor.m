@@ -1,4 +1,4 @@
-function plot_descriptor(data1,data2,titel,h,parametrization,descriptor_type)
+function plot_descriptor(data1,data2,titletext,h,parametrization,descriptor_type)
 % Can plot many types of trajectory descriptors
 
 labelfontsize_x = 14;
@@ -17,8 +17,8 @@ if isempty(data1)
 else
     N1 = length(data1);
     M1 = 1;
-    
 end
+
 N = max(N2,N1);
 
 switch parametrization
@@ -45,8 +45,14 @@ switch parametrization
                 label_x = '$t$[s]';
                 plotNames = {'$\ddot{\omega}_x[\frac{rad}{s^3}]$','$\ddot{\omega}_y[\frac{rad}{s^3}]$','$\ddot{\omega}_z[\frac{rad}{s^3}]$','$\ddot{v}_x[\frac{m}{s^3}]$','$\ddot{v}_y[\frac{m}{s^3}]$','$\ddot{v}_z[\frac{m}{s^3}]$'};
         end
-        
-            case 'timebased_contour'
+    case 'timebased_int'
+        switch descriptor_type
+            case 'screw_axis'
+                xvector = linspace(0,h*N,N);
+                label_x = '$t$[s]';
+                plotNames = {'$\int\omega_1 dt [rad]$','$\int\omega_2 dt [rad]$','$\int\omega_3 dt [rad]$','$\int v_1 dt [m]$','$\int v_2 dt [m]$','$\int v_3 dt [m]$'};
+        end
+    case 'timebased_contour'
         switch descriptor_type
             case 'pose_twist'
                 xvector = linspace(0,h*N,N);
@@ -69,7 +75,6 @@ switch parametrization
                 label_x = '$t$[s]';
                 plotNames = {'$\ddot{\omega}_x[\frac{rad}{s^3}]$','$\ddot{\omega}_y[\frac{rad}{s^3}]$','$\ddot{\omega}_z[\frac{rad}{s^3}]$','$\ddot{v}_x[\frac{m}{s^3}]$','$\ddot{v}_y[\frac{m}{s^3}]$','$\ddot{v}_z[\frac{m}{s^3}]$'};
         end
-        
     case 'timebased_o1'
         switch descriptor_type
             case 'screw_axis'
@@ -97,12 +102,19 @@ switch parametrization
                 plotNames = {'$\omega_x[\frac{rad}{s}]$','$\omega_y[\frac{rad}{s}]$','$\omega_z[\frac{rad}{s}]$','$v_x[\frac{m}{s}]$','$v_y[\frac{m}{s}]$','$v_z[\frac{m}{s}]$'};
             case 'frenetserret'
                 xvector = linspace(0,1,N);
-                label_x = '$\tau$[-]';
-                plotNames = {'{$I_{r1}$[rad]}','{$I_{r2}$[rad]}','{$I_{r3}$[rad]}','{$I_{t1}$[m]}','{$I_{t2}$[rad]}','{$I_{t3}$[rad]}'};
+                label_x = 'progress $\tau$[-]';
+                plotNames = {'rotation scale {$I_{r1}$[rad]}','{rotation curvature rate $I_{r2}[\frac{rad}{-}]$}','{rotation torsion rate $I_{r3}[\frac{rad}{-}]$}','{translation scale $I_{t1}$[m]}','{translation curvature rate $I_{t2}[\frac{rad}{-}]$}','{translation torsion rate $I_{t3}[\frac{rad}{-}]$}'};
             case 'screw_axis'
                 xvector = linspace(0,1,N);
-                label_x = '$\tau$[-]';
+                label_x = '$\xi$[-]';
                 plotNames = {'$\Omega_1$[rad]','$\Omega_2$[rad]','$\Omega_3$[rad]','$V_1$[m]','$V_2$[m]','$V_3$[m]'};
+        end
+    case 'geometric_int'
+        switch descriptor_type
+            case 'screw_axis'
+                xvector = linspace(0,1,N);
+                label_x = '$\xi$[-]';
+                plotNames = {'$\int \Omega_1 d\xi$[rad]','$\int  \Omega_2 d\xi$[rad]','$\int \Omega_3 d\xi$[rad]','$\int V_1 d\xi$[m]','$\int V_2 d\xi$[m]','$\int V_3 d\xi$[m]'};
         end
     case 'geometric_contour'
         switch descriptor_type
@@ -111,10 +123,10 @@ switch parametrization
                 xvector = linspace(0,deltas,N);
                 label_x = '$s$[m]';
                 plotNames = {'$\Omega_x$[rad]','$\Omega_y$[rad]','$\Omega_z$[rad]','$V_x$[m]','$V_y$[m]','$V_z$[m]'};
-%             case 'screw_twist'
-%                 xvector = linspace(0,h*N,N);
-%                 label_x = '$t$[s]';
-%                 plotNames = {'$\omega_x[\frac{rad}{s}]$','$\omega_y[\frac{rad}{s}]$','$\omega_z[\frac{rad}{s}]$','$v_x[\frac{m}{s}]$','$v_y[\frac{m}{s}]$','$v_z[\frac{m}{s}]$'};
+                %             case 'screw_twist'
+                %                 xvector = linspace(0,h*N,N);
+                %                 label_x = '$t$[s]';
+                %                 plotNames = {'$\omega_x[\frac{rad}{s}]$','$\omega_y[\frac{rad}{s}]$','$\omega_z[\frac{rad}{s}]$','$v_x[\frac{m}{s}]$','$v_y[\frac{m}{s}]$','$v_z[\frac{m}{s}]$'};
             case 'frenetserret'
                 deltas = abs(data2(1,4)/N);
                 xvector = linspace(0,deltas*N,N);
@@ -152,8 +164,8 @@ end
 linestyles = {'-','--',':','-.'};
 
 % Create figure
-figure1 = figure('Name',titel,'Color',[1 1 1]);
-set(gcf,'Units','normalized','OuterPosition',[0.5    0.2    0.5    0.7]);
+figure1 = figure('Name',titletext,'Color',[1 1 1]);
+set(gcf,'Units','normalized','OuterPosition',[0.5    0.2    0.7    0.7]);
 
 % Create subplot
 subplot1 = subplot(2,3,1,'Parent',figure1,'YGrid','on','FontSize',axisfontsize);
@@ -266,3 +278,5 @@ title(plotNames{6},'Interpreter','LaTex','FontSize',labelfontsize_y,'HorizontalA
 % if ~isempty(titel)
 %     suptitle(titel);
 % end
+main_title = {titletext};
+%sgtitle(main_title{1},'Interpreter','LaTex','FontSize',labelfontsize_y,'HorizontalAlignment', 'center')

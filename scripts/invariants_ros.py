@@ -35,8 +35,8 @@ class InvariantsROS:
         
         # Initialize ROS node, subscribers and publishers
         rospy.init_node('invariants_ros', anonymous=True)
-        self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=10)
-        self.trajectory_pub2 = rospy.Publisher('trajectory_pub2', PoseArray,  queue_size=10)
+        self.trajectory_pub = rospy.Publisher('trajectory_pub', Trajectory,queue_size=1)
+        self.trajectory_pub2 = rospy.Publisher('trajectory_pub2', PoseArray,  queue_size=1)
         rospy.Subscriber("current_pose_pub",Pose,self.callback_currentpose)
         rospy.Subscriber("current_twist_pub",Twist,self.callback_currenttwist)
         rospy.Subscriber('progress_partial',Float32,self.callback_localprogress)
@@ -67,8 +67,8 @@ class InvariantsROS:
 #        targetpose_end[2,3] += 1.0
         
         # Transformation matrix in world frame
-        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.7,0.35,-0.1))
-        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(-0.7,+0.7,-0.7),tf.Vector(0.0,0.0,0.0))
+        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(-0.7*0,-0.7,-0.1*0))
+        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(-0.7+1.57,+0.7*0+1.57,-0.7*0),tf.Vector(0.0,0.0,0.0))
         targetpose_end1 = tf.toMatrix( DeltaT_translation * tf.fromMatrix(targetpose_orig) * DeltaT_rotation )
         
         target_poses_list1 = self.shape_descriptor.generateLinearMotionTrajectory(startPose=targetpose_orig,endPose=targetpose_end1,duration=1.0,cyclePeriod=1./nb_samples)
@@ -107,14 +107,14 @@ class InvariantsROS:
         #pose_robot_home = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0) , tf.Vector(0.2,-1.3,-1.0+0.07))
 
         # Define an offset translation and rotation as two homogeneous transformation matrices
-        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(0.19,-1.5-0.5,-0.93))
-        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(2.11,-0.13,-0.14),tf.Vector(0.0,0.0,0.0))
+        DeltaT_translation = tf.Frame(tf.Rotation.EulerZYX(0.0,0.0,0.0),tf.Vector(+0.3,0,+0.23))
+        DeltaT_rotation = tf.Frame(tf.Rotation.EulerZYX(0,0,0),tf.Vector(0.0,0.0,0.0))
         
         #deltapose_world = np.matmul(pose_robot_home,np.linalg.inv(startpose_orig))
         
         # Apply the offset translation and rotation to the whole trajectory
         for idx,pose in enumerate(self.current_pose_trajectory):
-            self.current_pose_trajectory[idx] = tf.toMatrix( DeltaT_translation * tf.fromMatrix(pose) * DeltaT_rotation )
+            self.current_pose_trajectory[idx] = tf.toMatrix(  DeltaT_translation * DeltaT_rotation * tf.fromMatrix(pose)  )
 
         
         #deltapose_orig = np.linalg.inv(startpose_orig) * targetpose_orig # is in object frame
@@ -186,7 +186,9 @@ class InvariantsROS:
 
     def first_window(self):
         '''Generate the first trajectory (+ it initializes structure optimization problem for faster trajectories later)'''
-        new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.current_pose_trajectory[0], endPose=self.current_pose_trajectory[-1])
+        #new_trajectory,new_twists,invariants = self.shape_descriptor.generateFirstWindowTrajectory(startPose=self.current_pose_trajectory[0], endPose=self.current_pose_trajectory[-1])
+                
+        new_trajectory, new_twists, invariants = self.shape_descriptor.generateMotionFromInvariants(startPose=self.current_pose_trajectory[0],endPose=self.current_pose_trajectory[-1])
         
         # Save results to Class properties
         self.current_pose_trajectory = new_trajectory
@@ -245,7 +247,7 @@ class InvariantsROS:
         globalprogress = 0
         
         # while not at the end of the global trajectory (or total amount of trajectories < 30)
-        while not globalprogress >= 0.85  and not counter == 30:
+        while not globalprogress >= 0.85  and not counter == 1:
 
             # Set target pose
             localprogress = self.localprogress
@@ -292,7 +294,7 @@ class InvariantsROS:
 if __name__ == '__main__':
     try:
         # Set location of file containing demonstrated trajectory
-        demo_traj_file = "sinus.txt" #recorded_motion.csv
+        demo_traj_file = "Painting1.csv" #recorded_motion.csv
         rospack = rospkg.RosPack()
         file_location = rospack.get_path('etasl_invariants_integration') + '/data/demonstrated_trajectories/' + demo_traj_file
 
@@ -311,16 +313,17 @@ if __name__ == '__main__':
         test_standalone = False
         
         # Simulate new target poses (in a real application this would come in from an external source)
-        targetposes = inv.simulate_new_target_poses(inv.N)
+        targetposes = inv.simulate_new_target_poses(1)
         
-        # Generate first new trajectory (#TODO is it really necessary to do this separately?)
-        inv.first_window()
 
-        # Loop in which new trajectories are continuously generated
-        if test_standalone:
-            inv.standalone_test(targetposes)
-        else:
-            inv.loop_trajectory_generation_etasl(targetposes)
+#        # Generate first new trajectory (#TODO is it really necessary to do this separately?)
+        inv.first_window()
+#
+#        # Loop in which new trajectories are continuously generated
+#        if test_standalone:
+#            inv.standalone_test(targetposes)
+#        else:
+#            inv.loop_trajectory_generation_etasl(targetposes)
 
     except rospy.ROSInterruptException:
         pass

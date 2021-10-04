@@ -30,9 +30,9 @@ invariant_parameters = dict({
                 "inv_type": 'timebased', #"geometric" or "timebased" invariants
                 "h":        1.0/60.0,  #sample period
                 "N_iter":   200,    #Maximum Number of iterations
-                "w_pos":    1,      #Weight on the positions
+                "w_pos":    20,      #Weight on the positions
                 "w_rot":    1,      #Weight on the rotations
-                "w_deriv":  (10**-3)*np.array([1.0, 1.0, 1.0, 10.0, 1.0, 1.0]), #Weight on the derivative term
+                "w_deriv":  (10**-7)*np.array([1.0, 1.0, 1.0, 10.0, 1.0, 1.0]), #Weight on the derivative term
                 "w_abs":    (10**-10)*np.array([1.0, 1.0, 1.0, 1.0])    #Weight on the absolute term
                 })
 
@@ -48,7 +48,7 @@ moving_window_parameters = dict({
         'casadi_opti_stack' : cas.Opti(),
         'first_window_solved' : False,
         'previous_sol' : None,
-        'invariant_weights' : (10**-6)*np.array([1e2, 1.0, 1.0, 1.0, 1.0, 1.0])
+        'invariant_weights' : (10**0)*np.array([1e0, 1.0, 1.0, 1.0, 1.0, 1.0])
         })
 
 #list of casadi optistack variables
@@ -105,7 +105,7 @@ class MotionTrajectory:
         if not(motionDataFile == None) and invariantType == 'timebased':
             invariant_parameters['h'] = 1.0/60.0  #self.getSamplePeriod() * 10**-9 #timestaps are in ns here..
         elif invariantType == 'geometric':
-            invariant_parameters['h'] = 1.0/len(s) #self.getSamplePeriod()
+            invariant_parameters['h'] = 1.0/len(geometricPositions) #len(s) #self.getSamplePeriod()
         self.setInvariantParameters()
             
         if invariantSignatureFile == None:
@@ -222,7 +222,7 @@ class MotionTrajectory:
             self.__motionTrajectory = motionTrajectory
 
     def setMotionTrajectoryFromQuaternionFile(self, motionDataFile):
-        self.__motionTrajectory = self.convertQuaternionDataToMotionTrajectory(motionDataFile)
+        self.__motionTrajectory = self.convertQuaternionDataToMotionTrajectory2(motionDataFile)
 
     def setMotionTrajectoryFromTransformFile(self, motionDataFile):
         self.__motionTrajectory = self.convertTransformDataToMotionTrajectory(motionDataFile)
@@ -305,9 +305,48 @@ class MotionTrajectory:
         for i in range(0, len(rowsNoLabel)):
             temp_row = []
             for nb in rowsNoLabel[i]:
-                temp_row.append(float(nb))
+                try:
+                    temp_row.append(float(nb))
+                except:
+                    temp_row.append(float(0))
             float_lst.append(temp_row)
+            
         return float_lst
+
+    def convertQuaternionDataToMotionTrajectory2(self, filepath):
+        motionTrajectory = [] # motionTrajectory exists of [ [time0, Pose0], [time1, Pose1], ... , [timeN, PoseN]]
+
+
+        if filepath.endswith('.csv'):
+            rows = self.readCsv(filepath)
+            float_lst = self.convertRowsToFloat(rows[8:])
+
+            for i in range(0, len(float_lst),5):
+
+                row = float_lst[i]
+                tempMatrix = np.eye(4)
+                tempMatrix[0:3,0:3] = R.from_quat([row[2], row[3], row[4], row[5]]).as_dcm()
+                tempMatrix[0,3] = row[6]/1000
+                tempMatrix[1,3] = row[7]/1000
+                tempMatrix[2,3] = row[8]/1000
+
+                time_stamp = row[1]
+                pose = tempMatrix
+
+                motionTrajectory.append([time_stamp, pose])
+        elif filepath.endswith('.txt'):
+            data = np.loadtxt(filepath, dtype='float')
+            for i in range(0, len(data)):
+                tempMatrix = np.eye(4)
+                tempMatrix[0,3] = data[i][1]
+                tempMatrix[1,3] = data[i][2]
+                tempMatrix[2,3] = data[i][3]
+
+                tempMatrix[0:3,0:3] = R.from_quat([data[i][4], data[i][5], data[i][6], data[i][7]]).as_dcm()
+
+                time_stamp = data[i][0]
+                motionTrajectory.append([time_stamp, tempMatrix])
+        return motionTrajectory
 
 
     def convertQuaternionDataToMotionTrajectory(self, filepath):
@@ -606,7 +645,8 @@ class MotionTrajectory:
         s = np.concatenate((np.array([0]),cumm_sum))
 
         # Interpolate positions
-        p_n = np.linspace(0,s[-1],N)
+        N2 = 200
+        p_n = np.linspace(0,s[-1],N2)
 
         x_pos = []
         y_pos = []
@@ -626,7 +666,7 @@ class MotionTrajectory:
         # Interpolate rotation matrices
         if omega_norm[0] == 0: #if not rotation from start to end is made, skip the rot interpolation part! otherwise dividing by 0
             skip_rot = True
-        theta_n = np.linspace(0,theta[-1],N)
+        theta_n = np.linspace(0,theta[-1],N2)
         j = 0
         R_geo = []
         for i in range(len(theta_n)):
@@ -789,7 +829,7 @@ class MotionTrajectory:
                 opti.set_initial(U[:,k], np.ones((6,1)))
 
         opti.minimize(objective)
-        opti.solver('ipopt',{"print_time":True},{'print_level':0,'ma57_automatic_scaling':'no','linear_solver':'mumps'})
+        opti.solver('ipopt',{"print_time":True},{'print_level':5,'ma57_automatic_scaling':'no','linear_solver':'mumps'})
         #opti.solver('ipopt',struct(),struct('tol',10e-5))
 
 
@@ -993,6 +1033,7 @@ class MotionTrajectory:
         sol_dict['U4'] = []
         sol_dict['U5'] = []
         sol_dict['U6'] = []
+        sol_dict['U'] = []
         sol_dict['x'] = []
         sol_dict['y'] = []
         sol_dict['z'] = []
@@ -1002,7 +1043,8 @@ class MotionTrajectory:
         sol_dict['R_obj'] = []
         sol_dict['L'] = []
         sol_dict['Theta'] = []
-
+        sol_dict['T_obj'] = []
+        sol_dict['twist_obj'] = []
 
         bundled_invariants = OrderedDict()
         bundled_invariants['U'] = np.zeros((6,N-1))
@@ -1015,14 +1057,20 @@ class MotionTrajectory:
             sol_dict['R_obj'].append(sol.value(R_obj[k]))
             sol_dict['R_r'].append(sol.value(R_r[k]))
             sol_dict['R_t'].append(sol.value(R_t[k]))
+            sol_dict['T_obj'].append(np.r_[np.c_[ sol.value(R_obj[k]),sol.value(p_obj[k]).transpose() ],np.array([[0,0,0,1]])])
+
             if k!= N-1:
                 bundled_invariants['U'][:,k] = sol.value(U[:,k])
+                sol_dict['U'].append(sol.value(U[:,k]))
                 sol_dict['U1'].append(sol.value(U[0,k]))
                 sol_dict['U2'].append(sol.value(U[1,k]))
                 sol_dict['U3'].append(sol.value(U[2,k]))
                 sol_dict['U4'].append(sol.value(U[3,k]))
                 sol_dict['U5'].append(sol.value(U[4,k]))
                 sol_dict['U6'].append(sol.value(U[5,k]))
+                omega_obj = sol.value(R_r[k]).dot([sol.value(U[0,k]),0,0]) * self.velocityprofile_rot[k]
+                v_obj = sol.value(R_t[k]).dot([sol.value(U[3,k]),0,0]) * self.velocityprofile_trans[k]
+                sol_dict['twist_obj'].append(np.append(omega_obj,v_obj))
 
         if inv_type == "geometric":
             sol_dict["L"] = sol.value(L)
@@ -1032,7 +1080,9 @@ class MotionTrajectory:
             sol_dict["Theta"].append("not geometric")
 
         bundled_invariants['U'] = np.array(bundled_invariants['U'])
-        return sol_dict, bundled_invariants
+        full_invariants = np.array(sol_dict['U']).transpose()
+        
+        return sol_dict['T_obj'], sol_dict['twist_obj'], full_invariants
 
 
     def generateFirstWindowTrajectory(self, startPose = np.eye(4), startTwist = np.zeros([6,1]), endPose = np.eye(4), simulation = True):

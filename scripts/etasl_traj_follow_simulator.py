@@ -55,14 +55,14 @@ qinit = KDL.JntArray(Nq)
 qinit2 = KDL.JntArray(Nq)
 
 # Test forward kinematics
-current_robotpos = np.array([0,-np.pi*0.6,np.pi*0.6,-2.0,-np.pi*0.5,0.1])
+current_robotpos = np.array([-0.37,-0.30,-1.27,-0.25,-0.23,0])
 qinit = KDL.JntArray(Nq)
 for i in range(Nq):
     qinit[i] = current_robotpos[i]  
 fkpos_ee.JntToCart(qinit,Finit)
 
 # Test inverse kinematics
-Finit = KDL.Frame(KDL.Rotation.EulerZYX(-1.4465,0.3998,-2.0707), KDL.Vector(0.4,-0.4,0.9))
+Finit = KDL.Frame(KDL.Rotation.Quaternion(0.0389 ,   0.0075  , -0.5347 ,   0.8441), KDL.Vector(0.55,-0.02,0.89))
 ikpos_ee.CartToJnt(qinit,Finit,qinit2)
 print qinit2
 
@@ -116,10 +116,10 @@ class EtaslSimulator:
         rospy.Subscriber("/trajectory_pub",Trajectory,self.callback_traj)
 
         # Initialize ROS publishers        
-        self.current_pose_pub = rospy.Publisher('robot_state_pose_pub',Pose,queue_size=50)
-        self.current_twist_pub = rospy.Publisher('robot_state_twist_pub',Twist,queue_size=50)
-        self.current_progress_pub = rospy.Publisher('progress_partial',Float32,queue_size=50)
-        self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=50)
+        self.current_pose_pub = rospy.Publisher('robot_state_pose_pub',Pose,queue_size=1)
+        self.current_twist_pub = rospy.Publisher('robot_state_twist_pub',Twist,queue_size=1)
+        self.current_progress_pub = rospy.Publisher('progress_partial',Float32,queue_size=1)
+        self.jointState_pub = rospy.Publisher('/joint_states', JointState, queue_size=1)
         
         rospack = rospkg.RosPack()
         
@@ -231,7 +231,7 @@ class EtaslSimulator:
         Constraint{
             context=ctx,
             name='pose tracking',
-            expr = inv(Td) * ee,
+            expr = inv(Td)*ee,
             priority = 2,
             K = 10
         }
@@ -283,7 +283,7 @@ class EtaslSimulator:
         '''Use this for testing this component in isolation from the trajectory generator using pre-computed trajectories'''
         
         # Define when trajectories should switch
-        progress_sequence = np.array([0 , 0.2+0.1 , 0.4+0.1 , 0.6+0.1 , 0.8+0.1 , 1]) #global progress triggers, copied from invariants
+        progress_sequence = np.array([0 , 1]) #global progress triggers, copied from invariants
         local_progress_triggers = (progress_sequence[1:]-progress_sequence[:-1])/(1 - progress_sequence[:-1]) #local progress triggers
         
         # Initialization etasl controller
@@ -297,8 +297,8 @@ class EtaslSimulator:
         
         #current_robotpos = np.array([0.3441, 1.657, 1.601, 0.4956, -0.4489, 2.7519]) #np.array([0.14,1.5,1.72]) #        
         #current_robotpos = np.array([-1.2913, -1.68006, 1.3826, -1.16354, -0.460297, -1.24451]) #np.array([0.14,1.5,1.72]) #        
-        current_robotpos = np.array([-1.2366, -1.79548, 1.40716, -1.18334, -0.4573147,  -1.12111])
-        
+        current_robotpos = np.array([        -0.32416,-6.49562,-1.68905,0.326421, 1.65459, 3.90706])
+
         self.sim.initialize(current_robotpos,robot_labels)
  
         # Gather results in this list
@@ -328,11 +328,12 @@ class EtaslSimulator:
             local_progress_var = closest_index/(N-1)
             
             # Progress over current trajectory until you hit trigger for switching to next trajectory
-            while local_progress_var < local_progress_triggers[count] and rospy.get_time()-starttime < 10.0:
+            while local_progress_var < local_progress_triggers[count] and rospy.get_time()-starttime < 40:
                 
                 # Get setpoint for pose and twist
-                pose_setpoint = pose_traj[closest_index]
-                twist_setpoint = twist_traj[closest_index]
+                pose_setpoint = pose_traj[closest_index+1]
+                twist_setpoint = 0*twist_traj[closest_index]
+                #twist_setpoint[4:6] = 0.1*twist_setpoint[4:6]/np.linalg.norm(twist_setpoint[4:6])
                 pose_derivative_setpoint = calculate_pose_derivative(pose_setpoint,twist_setpoint)
                 
                 # Set variables in etasl controller, perform 1 simulation step and save joints in a variable
@@ -343,8 +344,8 @@ class EtaslSimulator:
                 #print current_robotpos
                 #rospy.loginfo(current_robotpos)
                 
-                print current_robotpos
-                print self.sim.OUTP
+                #print current_robotpos
+                #print self.sim.OUTP
 
                 # Find closest point to trajectory + estimate progress along current trajectory
                 Finit=KDL.Frame()
@@ -404,7 +405,7 @@ class EtaslSimulator:
         #robot_labels = ['x','y','z','yaw','pitch','roll'] # robot variables
         robot_labels = ["shoulder_pan_joint","shoulder_lift_joint","elbow_joint","wrist_1_joint","wrist_2_joint","wrist_3_joint"]
 #        current_robotpos = np.array([0.3417, 1.65, 1.7, 0.6956, -0.6489, 3.519])
-        current_robotpos = np.array([-1.2366, -1.79548, 1.40716, -1.18334, -0.4573147,  -1.12111])
+        current_robotpos = np.array([-0.37,-0.30,-1.27,-0.25,-0.23,0])
         self.sim.initialize(current_robotpos,robot_labels)
         local_progress_var = 0 # progress along current trajectory
         
@@ -537,7 +538,7 @@ if __name__ == '__main__':
         simul = EtaslSimulator()
         
         # Test this component on its own
-        test_standalone = False
+        test_standalone = True
         
         if test_standalone:
             simul.standalone_test()

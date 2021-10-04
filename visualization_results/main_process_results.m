@@ -1,6 +1,6 @@
-close all;
-clc;
-clear;
+% close all;
+% clc;
+% clear;
 
 % Config paths
 addpath('plotting_functions/')
@@ -12,7 +12,7 @@ addpath(results_folder);
 parameterization = 'geometric';
 dt = 1/60; % timestep
 show_demonstration = 1;
-nb = 16; % nb of trajectories
+nb = 1; % nb of trajectories
 save_videos = 0;
 show_obstacle = 1;
 
@@ -22,21 +22,33 @@ show_obstacle = 1;
 % fs = 200;
 % N = length(joint_vels);
 % time = linspace(0,N*1/fs,N);
-% 
+%
 % figure; plot(time,stairs(joint_vels))
 % figure ; plot(time,movmean(joint_vels(:,1:3),20))
 % figure; stairs(time,movmean(joint_vels(:,4:6),20))
-% 
+%
 
 
 %% Load measurements + invariants
 if show_demonstration
-    [tim, measured_pose_coordinates] = load_vive_data('../data/demonstrated_trajectories/sinus.txt');
+    %[tim, measured_pose_coordinates] = load_vive_data('../data/demonstrated_trajectories/sinus.txt');
+    loaddata
+    
+    measured_pose_coordinates = Painting1(:,[[7:9] [3:6]]);
+    only_translation = 0
     N = length(measured_pose_coordinates);
-    meas_traj_time.Obj_location = measured_pose_coordinates(:,1:3); % position
+    dt = 1/60; % timestep
+    
+    % Convert quaternion to rotation matrix
+    meas_traj_time.Obj_location = measured_pose_coordinates(:,1:3)/1000; % position
     for i=1:N
-        meas_traj_time.Obj_frames(:,:,i) = quat2rot(measured_pose_coordinates(i,4:7)); % rotation matrix
+        if only_translation
+            meas_traj_time.Obj_frames(:,:,i) = eye(3); % rotation matrix
+        else
+            meas_traj_time.Obj_frames(:,:,i) = quat2rot(measured_pose_coordinates(i,4:7)); % rotation matrix
+        end
     end
+    
     % For geometric invariants we also transform the time-trajectory R(t) and p(t) to the geometric trajectory R(theta) and p(s)
     if strcmp(parameterization,'geometric')
         [meas_traj,s,theta] = reparameterize_trajectory_geom(meas_traj_time,dt);
@@ -45,14 +57,32 @@ if show_demonstration
         meas_traj = meas_traj_time;
         h = dt;
     end
-    plot_trajectory(meas_traj_time,[],'measurements',1,0);
     
+    % Visualization
+    plot_trajectory(meas_traj,[],'measurements',1,0);
+    
+    
+    %     N = length(measured_pose_coordinates);
+    %     meas_traj_time.Obj_location = measured_pose_coordinates(:,1:3); % position
+    %     for i=1:N
+    %         meas_traj_time.Obj_frames(:,:,i) = quat2rot(measured_pose_coordinates(i,4:7)); % rotation matrix
+    %     end
+    %     % For geometric invariants we also transform the time-trajectory R(t) and p(t) to the geometric trajectory R(theta) and p(s)
+    %     if strcmp(parameterization,'geometric')
+    %         [meas_traj,s,theta] = reparameterize_trajectory_geom(meas_traj_time,dt);
+    %         h = 1/N;
+    %     else
+    %         meas_traj = meas_traj_time;
+    %         h = dt;
+    %     end
+    %     plot_trajectory(meas_traj_time,[],'measurements',1,0);
+    %
     % Load calculated invariants + reconstructed trajectory
     demo_invars = load([results_folder,'invariants_demo.txt']);
     demo_traj = load([results_folder,'traj_demo.txt']);
     
     demon_traj.Obj_location = demo_traj(:,11:13);
-    for i=1:N
+    for i=1:length(demo_traj)
         demon_traj.Obj_frames(:,:,i) = reshape(demo_traj(i,2:10),3,3); % rotation matrix
     end
     plot_trajectory2(meas_traj,demon_traj,'measurements(blue), calculated(red)',1);
@@ -61,10 +91,10 @@ if show_demonstration
     % Plot first new trajectory
     trajectory = load([results_folder,['traj',num2str(0),'.txt']]);
     n_traj.Obj_location = trajectory(:,11:13);
-    for i=1:N
+    for i=1:length(demo_traj)-1
         n_traj.Obj_frames(:,:,i) = reshape(trajectory(i,2:10),3,3); % rotation matrix
     end
-    plot_trajectory(demon_traj,n_traj,'measurements(blue), calculated(red)',1,0);
+    plot_trajectory(n_traj,[],'new traj',1,0);
 end
 
 %% Load robot trajectory and global trajectories
