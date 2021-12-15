@@ -17,6 +17,7 @@ Clone and build this repository in your Catkin workspace
 
     cd ~/catkin_ws/src
     git clone git@gitlab.kuleuven.be:robotgenskill/python_projects/etasl_invariants_integration.git
+    git clone git@gitlab.kuleuven.be:rob-expressiongraphs/viz_marker.git
     cd ~/catkin_ws
     catkin_make
 
